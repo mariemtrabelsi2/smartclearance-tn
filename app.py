@@ -125,6 +125,12 @@ with c2:
                     f"border:1px solid {couleur};color:{couleur};border-radius:1rem;"
                     f"font-size:.8rem'>{ref['libelle']}</span>", unsafe_allow_html=True)
     st.write(s["explication"])
+    vd = s.get("valeur_declaree")
+    if vd and vd.get("usd"):
+        st.markdown(f"**{vd['libelle']}**")
+        # Le taux est dit fixe partout : un taux faux presente comme officiel
+        # serait pire qu'un taux annonce comme illustration.
+        st.caption(f"Montants en dinars : {vd['taux']} — {vd['source_taux']}.")
 
 # ---------------- Alertes ----------------
 

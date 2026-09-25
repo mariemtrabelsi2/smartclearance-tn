@@ -9,6 +9,7 @@ import statistics
 from pathlib import Path
 
 from agents.base import RapportAgent, NIVEAU_ECART
+from agents.devises import conversion, fmt_tnd, fmt_tnd_kg, vers_tnd, MENTION_TAUX
 
 RACINE = Path(__file__).resolve().parent.parent
 BAREME_DEFAUT = RACINE / "bareme.csv"
@@ -157,6 +158,19 @@ def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
     sh = str(donnees_ddm.get("code_sh") or "").strip()
     pays = str(donnees_ddm.get("pays_origine") or "").strip().upper()
     valeur, poids = donnees_ddm.get("valeur_cif_usd"), donnees_ddm.get("poids_net_kg")
+    conv = None
+    if valeur is None and donnees_ddm.get("valeur_cif") is not None:
+        # DDM exprimee dans une autre devise : on la ramene en USD, l'unite du
+        # bareme. Jamais l'inverse. Devise inconnue : pas de comparaison de prix.
+        conv = conversion(donnees_ddm["valeur_cif"], donnees_ddm.get("devise"))
+        if conv is None:
+            r.non_lus.append(f"DDM.devise illisible ou inconnue ({donnees_ddm.get('devise')}) : "
+                             "prix non compare au bareme")
+            r.statut = "INCOMPLET"
+            return r
+        valeur = conv["valeur_usd"]
+        # Ici c'est la devise de la declaration, pas celle de la facture.
+        conv["devise_declaration"] = conv.pop("devise_facture")
 
     if not valeur or not poids:
         r.non_lus.append("DDM.valeur_cif_usd ou DDM.poids_net_kg : prix au kilo incalculable")
@@ -204,8 +218,8 @@ def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
             r.ajouter(
                 type="sous_evaluation", niveau=NIVEAU_ECART,
                 gravite=round(min(GRAVITE_MAX, abs(ecart)) * ref["facteur"]),
-                message=(f"{ref['prefixe']}Prix declare {prix_kg:,.2f} USD/kg contre une reference de "
-                         f"{mediane:,.2f} USD/kg ({ecart:+.0f} %). {MENTION_OMC}"),
+                message=(f"{ref['prefixe']}Prix declare {fmt_tnd_kg(prix_kg)} contre une reference de "
+                         f"{fmt_tnd_kg(mediane)} ({ecart:+.0f} %). {MENTION_OMC}"),
                 preuve={"prix_kg_declare": round(prix_kg, 2), "prix_kg_reference": mediane,
                         "ecart_pct": round(ecart, 1), "seuil_pct": ref["seuil"],
                         "fiabilite_reference": ref["fiabilite"], "type_reference": ref["type"],
@@ -260,7 +274,24 @@ def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
         for a in r.alertes:
             a.preuve.update(ajustement)
             a.message = (f"Prix ramene en CIF ({incoterm} x {facteur:g}) : "
-                         f"{prix_brut:,.2f} -> {prix_kg:,.2f} USD/kg. " + a.message)
+                         f"{fmt_tnd_kg(prix_brut)} -> {fmt_tnd_kg(prix_kg)}. " + a.message)
+
+    if conv and conv["devise_declaration"] != "USD":
+        for a in r.alertes:
+            a.preuve.update(conv)
+
+    # Ordre de grandeur de l'enjeu, en dinars. Ni droits ni TVA : il faudrait
+    # le tarif douanier par code SH, non integre a ce prototype.
+    for a in r.alertes:
+        ref_kg = a.preuve.get("prix_kg_reference") or a.preuve.get("reference_code_suggere")
+        if a.type.startswith("sous_evaluation") and ref_kg:
+            manque_usd = max(0.0, (ref_kg - prix_kg) * poids)
+            a.preuve.update({"valeur_non_declaree_tnd": round(vers_tnd(manque_usd), -2),
+                             "base": "ecart de prix au kilo applique au poids net declare",
+                             "taux": MENTION_TAUX})
+            estimation = (f"Valeur non declaree estimee : {fmt_tnd(round(manque_usd, -2))} "
+                          f"(estimation, {MENTION_TAUX}).")
+            a.message = a.message.replace(f" {MENTION_OMC}", f" {estimation} {MENTION_OMC}")
 
     # Pose apres ajouter(), qui force 'ALERTE' : l'inspecteur doit savoir que la
     # reference du code declare est absente ou approchee. Une alerte de

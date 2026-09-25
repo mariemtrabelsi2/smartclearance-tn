@@ -7,6 +7,7 @@ from pathlib import Path
 
 from agents.base import RapportAgent, NIVEAU_CONTRADICTION
 from agents import inspecteur_documentaire, analyste_prix, profileur, isolation
+from agents.devises import fmt_tnd, vers_tnd, MENTION_TAUX, SOURCE_TAUX
 
 # Une contradiction entre documents est un fait ; un ecart de prix ou de
 # poids est une hypothese. D'ou le poids double du niveau 1.
@@ -195,6 +196,10 @@ def analyser_dossier(dossier, bareme_csv=analyste_prix.BAREME_DEFAUT,
     r3 = profileur.analyser(r1.donnees["ddm"], historique_csv, r1.donnees["facture"].get("date"))
     synthese = synthetiser([r1, r2, r3])
     synthese["numero_ddm"] = r1.donnees["ddm"].get("numero_ddm")
+    v = r1.donnees["ddm"].get("valeur_cif_usd")
+    synthese["valeur_declaree"] = {"usd": v, "tnd": round(vers_tnd(v)) if v else None,
+                                   "libelle": f"Valeur declaree : {fmt_tnd(v)}",
+                                   "taux": MENTION_TAUX, "source_taux": SOURCE_TAUX}
     return synthese
 
 

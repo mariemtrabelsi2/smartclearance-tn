@@ -10,6 +10,7 @@ from pathlib import Path
 
 from agents.base import RapportAgent, NIVEAU_CONTRADICTION, NIVEAU_ECART
 from agents.extraction import pdf_vers_texte, extraire_champs, CHAMPS
+from agents.devises import conversion, fmt_tnd, nombre_fr
 
 RACINE = Path(__file__).resolve().parent.parent
 
@@ -164,15 +165,27 @@ def analyser(dossier: str) -> RapportAgent:
                    + (" / certificat : ligne 'Net weight'" if cer is not None else ""),
         )
 
+    # La facture est dans sa devise, la DDM en USD : on ramene la facture en USD
+    # (pivot) avant de comparer. Devise illisible ou inconnue : pas de comparaison.
     mt, v_ddm = fac["montant_total"], ddm.get("valeur_cif_usd")
-    if mt is not None and v_ddm is not None and _ecart_relatif(mt, v_ddm) > 0.01:
+    conv = conversion(mt, fac["devise"])
+    if mt is not None and conv is None:
+        r.non_lus.append(f"facture.devise illisible ou inconnue ({fac['devise']}) : "
+                         "valeur facture non comparee a la DDM")
+    mt_usd = conv["valeur_usd"] if conv else None
+    if mt_usd is not None and v_ddm is not None and _ecart_relatif(mt_usd, v_ddm) > 0.01:
+        preuve = {"facture_total": mt, "DDM_valeur_cif_usd": v_ddm,
+                  "ecart_pct": round(100 * (v_ddm - mt_usd) / mt_usd, 1), "tolerance_pct": 1}
+        if conv["devise_facture"] != "USD":
+            preuve.update(conv)
+        devise_txt = (f"{nombre_fr(mt)} {conv['devise_facture']}, soit " if conv["devise_facture"] != "USD"
+                      else "")
         r.ajouter(
             type="ecart_valeur", niveau=NIVEAU_CONTRADICTION, gravite=85,
-            message=(f"La facture totalise {mt:,.2f} {fac['devise'] or ''} alors que la DDM "
-                     f"declare une valeur CIF de {v_ddm:,.2f} USD."),
-            preuve={"facture_total": mt, "DDM_valeur_cif_usd": v_ddm,
-                    "ecart_pct": round(100 * (v_ddm - mt) / mt, 1), "tolerance_pct": 1},
-            source="facture : ligne 'TOTAL CIF' / DDM : champ valeur_cif_usd",
+            message=(f"La facture totalise {devise_txt}{fmt_tnd(mt_usd)}, alors que la DDM "
+                     f"declare une valeur CIF de {fmt_tnd(v_ddm)}."),
+            preuve=preuve,
+            source="facture : lignes 'Currency' et 'TOTAL CIF' / DDM : champ valeur_cif_usd",
         )
 
     # Origine : trois sources si le certificat est la, deux sinon.
