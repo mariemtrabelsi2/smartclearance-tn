@@ -1,4 +1,4 @@
-"""Agent 3 : coordonne les rapports et produit une recommandation pour l'inspecteur.
+"""Coordinateur : rassemble les rapports des agents et produit une recommandation pour l'inspecteur.
 
 Il ne tranche pas : il ordonne les doutes et dit quelles pieces reclamer.
 """
@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from agents.base import RapportAgent, NIVEAU_CONTRADICTION
-from agents import inspecteur_documentaire, analyste_prix
+from agents import inspecteur_documentaire, analyste_prix, profileur
 
 # Une contradiction entre documents est un fait ; un ecart de prix ou de
 # poids est une hypothese. D'ou le poids double du niveau 1.
@@ -14,6 +14,10 @@ POIDS_NIVEAU = {1: 1.0, 2: 0.5}
 
 SEUIL_DOCUMENTAIRE = 30
 SEUIL_PHYSIQUE = 65
+
+# Un profil n'est pas une preuve : la part du profileur dans le score est
+# plafonnee, et elle ne peut jamais faire franchir seule le seuil physique.
+PLAFOND_PROFIL = 40
 
 PIECES = {
     "ecart_quantite": ["contrat commercial", "liste de colisage rectifiee"],
@@ -28,6 +32,11 @@ PIECES = {
     "designation_vague": ["fiche technique du produit", "designation detaillee (marque, modele, reference)"],
     "sous_evaluation_via_reclassement": ["fiche technique du produit", "contrat commercial",
                                          "preuve de paiement (avis SWIFT, releve bancaire)"],
+    "anciennete_importateur": ["extrait du registre de commerce"],
+    "fournisseur_inconnu": ["contrat commercial", "coordonnees et registre du fournisseur"],
+    "changement_secteur": ["justification de la nouvelle activite (registre de commerce, agrement)"],
+    "derive_prix": ["factures d'achats anterieurs", "justification de l'evolution des prix"],
+    "fournisseur_partage": ["contrat commercial", "preuve de paiement (avis SWIFT, releve bancaire)"],
     "sous_evaluation": ["contrat commercial", "preuve de paiement (avis SWIFT, releve bancaire)",
                         "justification de remise", "factures d'achats anterieurs"],
 }
@@ -37,18 +46,31 @@ def _poids(a):
     return a.gravite * POIDS_NIVEAU.get(a.niveau, 0.5)
 
 
-def score_global(alertes):
-    """Combinaison 'ou-bruite' : chaque alerte ajoute du doute sans que la somme
-    depasse 100, et deux alertes moyennes pesent plus qu'une seule."""
+def _ou_bruite(alertes):
+    """Chaque alerte ajoute du doute sans que la somme depasse 100, et deux
+    alertes moyennes pesent plus qu'une seule."""
     reste = 1.0
     for a in alertes:
         reste *= 1 - min(_poids(a), 100) / 100
-    score = round(100 * (1 - reste))
-    # Plancher : un doute emis (meme de niveau 2) appelle au minimum une demande
-    # de justification. Liberer en affichant un motif de doute serait incoherent.
-    if alertes:
-        score = max(score, SEUIL_DOCUMENTAIRE)
-    return score
+    return 100 * (1 - reste)
+
+
+def score_global(alertes):
+    dossier = [a for a in alertes if a.type not in profileur.TYPES]
+    profil = [a for a in alertes if a.type in profileur.TYPES]
+
+    s_dossier = _ou_bruite(dossier)
+    # Plancher : un doute emis sur le dossier appelle au minimum une demande de
+    # justification. Liberer en affichant un motif de doute serait incoherent.
+    # Il ne s'applique pas au profil seul : un profil oriente, il n'accuse pas.
+    if dossier:
+        s_dossier = max(s_dossier, SEUIL_DOCUMENTAIRE)
+
+    s_profil = min(PLAFOND_PROFIL, _ou_bruite(profil))
+    total = 100 * (1 - (1 - s_dossier / 100) * (1 - s_profil / 100))
+    if s_dossier <= SEUIL_PHYSIQUE:
+        total = min(total, SEUIL_PHYSIQUE)
+    return round(max(s_dossier, total))
 
 
 def recommandation(score):
@@ -141,13 +163,18 @@ def synthetiser(rapports: list) -> dict:
     }
 
 
-def analyser_dossier(dossier, bareme_csv=analyste_prix.BAREME_DEFAUT) -> dict:
-    """Chaine complete : Agent 1 et Agent 2 lisent, l'orchestrateur synthetise."""
+def analyser_dossier(dossier, bareme_csv=analyste_prix.BAREME_DEFAUT,
+                     historique_csv=profileur.HISTORIQUE_DEFAUT) -> dict:
+    """Chaine complete : Agents 1 et 2 lisent le dossier, l'Agent 3 le profil
+    de l'operateur, le coordinateur synthetise."""
     r1 = inspecteur_documentaire.analyser(dossier)
     # Premier lien entre agents : l'Agent 2 recoit ce que l'Agent 1 a etabli
     # (notamment un code SH suggere quand la designation contredit la DDM).
     r2 = analyste_prix.analyser(r1.donnees["ddm"], bareme_csv, r1.donnees)
-    synthese = synthetiser([r1, r2])
+    # Le profileur ne voit que l'historique anterieur a la date de la facture
+    # (la DDM de test n'a pas de date propre).
+    r3 = profileur.analyser(r1.donnees["ddm"], historique_csv, r1.donnees["facture"].get("date"))
+    synthese = synthetiser([r1, r2, r3])
     synthese["numero_ddm"] = r1.donnees["ddm"].get("numero_ddm")
     return synthese
 

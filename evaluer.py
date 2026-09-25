@@ -9,6 +9,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from agents.orchestrateur import analyser_dossier
+from agents.profileur import TYPES as TYPES_PROFIL
 
 RACINE = Path(__file__).resolve().parent
 
@@ -27,8 +28,11 @@ def evaluer(dossiers_dir=RACINE / "dossiers"):
         s = analyser_dossier(Path(dossiers_dir) / d["dossier"])
         attendus = [a["type"] for a in d["anomalies"]]
         # Les alertes a gravite 0 sont informatives : elles ne comptent pas comme emises.
+        # Rappel et precision portent sur le dossier : la verite terrain ne
+        # connait pas les profils, qu'on compte a part.
         obtenus = [EQUIVALENCES.get(a["type"], a["type"])
-                   for a in s["alertes"] if a["gravite"] > 0]
+                   for a in s["alertes"] if a["gravite"] > 0 and a["type"] not in TYPES_PROFIL]
+        profil = [a["type"] for a in s["alertes"] if a["type"] in TYPES_PROFIL]
 
         restants = list(attendus)
         for t in obtenus:
@@ -49,13 +53,14 @@ def evaluer(dossiers_dir=RACINE / "dossiers"):
         ligne = {"dossier": d["dossier"], "propre": d["propre"], "attendues": attendus,
                  "obtenues": obtenus, "manquees": restants,
                  "en_trop": [t for t in obtenus if t not in attendus],
-                 "score": s["score"], "recommandation": s["recommandation"],
+                 "alertes_profil": profil, "score": s["score"], "recommandation": s["recommandation"],
                  "analyse_partielle": bool(s["champs_non_lus"])}
         detail.append(ligne)
         if d["propre"]:
             propres.append(ligne)
 
     fp_propres = sum(len(p["obtenues"]) for p in propres)
+    profil_tous = [t for l in detail for t in l["alertes_profil"]]
     return {
         "nb_dossiers": len(detail),
         "anomalies_posees": posees,
@@ -69,7 +74,13 @@ def evaluer(dossiers_dir=RACINE / "dossiers"):
             "alertes_emises": fp_propres,
             "dossiers_avec_alerte": [p["dossier"] for p in propres if p["obtenues"]],
             "non_liberes": [p["dossier"] for p in propres if p["recommandation"] != "LIBERATION"],
+            "alertes_profil": sum(len(p["alertes_profil"]) for p in propres),
         },
+        "profil": {"alertes_emises": len(profil_tous),
+                   "par_type": {t: profil_tous.count(t) for t in sorted(set(profil_tous))},
+                   "dossiers_physique_par_profil_seul": [
+                       l["dossier"] for l in detail
+                       if l["recommandation"] == "CONTROLE_PHYSIQUE" and not l["obtenues"]]},
         "par_type": dict(sorted(par_type.items())),
         "detail": detail,
     }
@@ -82,6 +93,10 @@ def afficher(r):
     p = r["propres"]
     print(f"FAUX POSITIFS sur les {p['nb']} dossiers propres : {p['alertes_emises']} alerte(s) "
           f"{p['dossiers_avec_alerte'] or ''} ; non liberes : {p['non_liberes'] or 'aucun'}")
+    pr = r["profil"]
+    print(f"PROFIL (compte a part) : {pr['alertes_emises']} alerte(s) {pr['par_type']} ; "
+          f"sur les propres : {p['alertes_profil']} ; "
+          f"controle physique du au profil seul : {pr['dossiers_physique_par_profil_seul'] or 'aucun'}")
     print()
     print(f"{'type':24} {'posees':>6} {'trouvees':>8} {'emises':>6} {'justes':>6}")
     for t, v in r["par_type"].items():
@@ -94,6 +109,8 @@ def afficher(r):
             extra += f" manquees={l['manquees']}"
         if l["en_trop"]:
             extra += f" en_trop={l['en_trop']}"
+        if l["alertes_profil"]:
+            extra += f" profil={l['alertes_profil']}"
         print(f"{marque}{l['dossier']} {'propre' if l['propre'] else '      '} "
               f"score={l['score']:>3} {l['recommandation']:21}{extra}")
 

@@ -62,11 +62,16 @@ def main():
     derive, secteur, partage, normaux = autres[:3], autres[3:5], autres[5:9], autres[9:]
 
     # Distributeurs du generateur : tous produits, tous fournisseurs du generateur.
+    # Chaque produit apparait au moins une fois dans les 6 premiers mois : sinon
+    # le hasard laisse un trou et le profileur voit un faux changement de secteur.
     for imp in IMPORTATEURS_GENERATEUR:
-        for _ in range(20):
+        for k in range(20):
             four, pays = random.choice(FOURNISSEURS_GENERATEUR)
-            lignes.append(ligne(imp, four, pays, random.choice(PRODUITS_GENERATEUR),
-                                random.randint(0, 23)))
+            if k < len(PRODUITS_GENERATEUR):
+                sh, mois = PRODUITS_GENERATEUR[k], random.randint(0, 5)
+            else:
+                sh, mois = random.choice(PRODUITS_GENERATEUR), random.randint(0, 23)
+            lignes.append(ligne(imp, four, pays, sh, mois))
 
     # Schema 1 : derive de prix de -5 % par trimestre, un seul produit, fournisseur dedie.
     for i, imp in enumerate(derive):

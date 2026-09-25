@@ -10,7 +10,15 @@
     "nb": 6,
     "alertes_emises": 0,
     "dossiers_avec_alerte": [],
-    "non_liberes": []
+    "non_liberes": [],
+    "alertes_profil": 0
+  },
+  "profil": {
+    "alertes_emises": 1,
+    "par_type": {
+      "changement_secteur": 1
+    },
+    "dossiers_physique_par_profil_seul": []
   },
   "par_type": {
     "designation_vs_sh": {
@@ -70,6 +78,7 @@
       "obtenues": [],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 0,
       "recommandation": "LIBERATION",
       "analyse_partielle": true
@@ -81,6 +90,7 @@
       "obtenues": [],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 0,
       "recommandation": "LIBERATION",
       "analyse_partielle": false
@@ -96,6 +106,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 80,
       "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": false
@@ -113,6 +124,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 94,
       "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": true
@@ -128,6 +140,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 35,
       "recommandation": "CONTROLE_DOCUMENTAIRE",
       "analyse_partielle": true
@@ -145,7 +158,10 @@
       ],
       "manquees": [],
       "en_trop": [],
-      "score": 59,
+      "alertes_profil": [
+        "changement_secteur"
+      ],
+      "score": 65,
       "recommandation": "CONTROLE_DOCUMENTAIRE",
       "analyse_partielle": true
     },
@@ -160,6 +176,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 35,
       "recommandation": "CONTROLE_DOCUMENTAIRE",
       "analyse_partielle": true
@@ -175,6 +192,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 30,
       "recommandation": "CONTROLE_DOCUMENTAIRE",
       "analyse_partielle": true
@@ -190,6 +208,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 75,
       "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": true
@@ -205,6 +224,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 80,
       "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": false
@@ -222,6 +242,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 97,
       "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": true
@@ -233,6 +254,7 @@
       "obtenues": [],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 0,
       "recommandation": "LIBERATION",
       "analyse_partielle": false
@@ -244,6 +266,7 @@
       "obtenues": [],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 0,
       "recommandation": "LIBERATION",
       "analyse_partielle": true
@@ -259,6 +282,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 60,
       "recommandation": "CONTROLE_DOCUMENTAIRE",
       "analyse_partielle": true
@@ -270,6 +294,7 @@
       "obtenues": [],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 0,
       "recommandation": "LIBERATION",
       "analyse_partielle": false
@@ -285,6 +310,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 75,
       "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": true
@@ -300,6 +326,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 30,
       "recommandation": "CONTROLE_DOCUMENTAIRE",
       "analyse_partielle": true
@@ -317,6 +344,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 81,
       "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": true
@@ -328,6 +356,7 @@
       "obtenues": [],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 0,
       "recommandation": "LIBERATION",
       "analyse_partielle": true
@@ -345,6 +374,7 @@
       ],
       "manquees": [],
       "en_trop": [],
+      "alertes_profil": [],
       "score": 96,
       "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": true
