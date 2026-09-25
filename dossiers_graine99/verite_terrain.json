@@ -1,0 +1,216 @@
+{
+  "nb_dossiers": 20,
+  "nb_anomalies_posees": 19,
+  "dossiers": [
+    {
+      "dossier": "dossier_01",
+      "propre": false,
+      "nb_anomalies": 2,
+      "anomalies": [
+        {
+          "type": "ecart_origine",
+          "detail": "transport ES vs DDM TR"
+        },
+        {
+          "type": "ecart_valeur",
+          "detail": "facture 5225000.0 USD vs DDM 3553000.0 USD"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_02",
+      "propre": true,
+      "nb_anomalies": 0,
+      "anomalies": []
+    },
+    {
+      "dossier": "dossier_03",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "ecart_valeur",
+          "detail": "facture 152960.0 USD vs DDM 84128.0 USD"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_04",
+      "propre": false,
+      "nb_anomalies": 2,
+      "anomalies": [
+        {
+          "type": "sous_evaluation",
+          "detail": "45.45 USD/kg vs reference 142.0 USD/kg"
+        },
+        {
+          "type": "designation_vs_sh",
+          "detail": "facture dit 'Smartphone 6.5 inch 128GB' mais SH declare 732690"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_05",
+      "propre": false,
+      "nb_anomalies": 2,
+      "anomalies": [
+        {
+          "type": "ecart_origine",
+          "detail": "transport TR vs DDM ES"
+        },
+        {
+          "type": "erreur_arithmetique",
+          "detail": "500 x 133.0 != 53200.0 sur la facture"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_06",
+      "propre": true,
+      "nb_anomalies": 0,
+      "anomalies": []
+    },
+    {
+      "dossier": "dossier_07",
+      "propre": true,
+      "nb_anomalies": 0,
+      "anomalies": []
+    },
+    {
+      "dossier": "dossier_08",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "ecart_valeur",
+          "detail": "facture 4200.0 USD vs DDM 2310.0 USD"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_09",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "erreur_arithmetique",
+          "detail": "50 x 3.7 != 148.0 sur la facture"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_10",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "ecart_quantite",
+          "detail": "facture 200 pcs vs colisage 280 pcs"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_11",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "ecart_poids",
+          "detail": "colisage 7500.0 kg vs DDM 5325.0 kg"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_12",
+      "propre": false,
+      "nb_anomalies": 2,
+      "anomalies": [
+        {
+          "type": "poids_invraisemblable",
+          "detail": "0.008 kg par unite pour 'Smartphone 6.5 inch 128GB'"
+        },
+        {
+          "type": "designation_vs_sh",
+          "detail": "facture dit 'Smartphone 6.5 inch 128GB' mais SH declare 732690"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_13",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "ecart_origine",
+          "detail": "transport TR vs DDM CN"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_14",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "ecart_origine",
+          "detail": "transport TR vs DDM EG"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_15",
+      "propre": true,
+      "nb_anomalies": 0,
+      "anomalies": []
+    },
+    {
+      "dossier": "dossier_16",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "designation_vs_sh",
+          "detail": "facture dit 'Cotton T-shirt' mais SH declare 732690"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_17",
+      "propre": true,
+      "nb_anomalies": 0,
+      "anomalies": []
+    },
+    {
+      "dossier": "dossier_18",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "poids_invraisemblable",
+          "detail": "44.000 kg par unite pour 'Passenger car 1200cc'"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_19",
+      "propre": true,
+      "nb_anomalies": 0,
+      "anomalies": []
+    },
+    {
+      "dossier": "dossier_20",
+      "propre": false,
+      "nb_anomalies": 2,
+      "anomalies": [
+        {
+          "type": "poids_invraisemblable",
+          "detail": "1.400 kg par unite pour 'Wooden office desk'"
+        },
+        {
+          "type": "designation_vs_sh",
+          "detail": "facture dit 'Wooden office desk' mais SH declare 732690"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-962314",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "STE ESSALEM IMPORT SARL",
+  "fournisseur": "LOMBARDIA FORNITURE SRL",
+  "reference_facture": "INV-2026-1007",
+  "code_sh": "940360",
+  "designation": "Meubles en bois",
+  "pays_origine": "IT",
+  "quantite": 800,
+  "poids_net_kg": 28000.0,
+  "valeur_cif_usd": 106400.0,
+  "incoterm": "CIF",
+  "conteneur": "MSCU6661219"
+}

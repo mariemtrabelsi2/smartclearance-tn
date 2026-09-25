@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-657489",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "EL BAHIA NEGOCE SARL",
+  "fournisseur": "NILE DELTA EXPORT",
+  "reference_facture": "INV-2026-1018",
+  "code_sh": "870321",
+  "designation": "Voitures de tourisme",
+  "pays_origine": "EG",
+  "quantite": 1500,
+  "poids_net_kg": 66000.0,
+  "valeur_cif_usd": 15675000.0,
+  "incoterm": "CIF",
+  "conteneur": "MSCU9039197"
+}

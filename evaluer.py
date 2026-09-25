@@ -95,8 +95,11 @@ def afficher(r):
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
-    res = evaluer()
+    # Usage : py evaluer.py [dossier_des_cas] [fichier_resultats]
+    # Permet de mesurer un jeu independant sans ecraser les resultats principaux.
+    entree = Path(sys.argv[1]) if len(sys.argv) > 1 else RACINE / "dossiers"
+    sortie = Path(sys.argv[2]) if len(sys.argv) > 2 else RACINE / "resultats.json"
+    res = evaluer(entree)
     afficher(res)
-    (RACINE / "resultats.json").write_text(json.dumps(res, indent=2, ensure_ascii=False),
-                                          encoding="utf-8")
-    print("\nresultats.json ecrit.")
+    sortie.write_text(json.dumps(res, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"\n{sortie.name} ecrit.")

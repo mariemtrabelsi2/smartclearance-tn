@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-724340",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "STE ESSALEM IMPORT SARL",
+  "fournisseur": "IBERIA SUMINISTROS SL",
+  "reference_facture": "INV-2026-1001",
+  "code_sh": "870321",
+  "designation": "Voitures de tourisme",
+  "pays_origine": "TR",
+  "quantite": 500,
+  "poids_net_kg": 550000.0,
+  "valeur_cif_usd": 3553000.0,
+  "incoterm": "CIF",
+  "conteneur": "MSCU8762825"
+}
