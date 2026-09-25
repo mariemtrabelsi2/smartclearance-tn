@@ -11,12 +11,14 @@ Produit, par dossier :
     dossier_NN/colisage.pdf
     dossier_NN/transport.pdf
     dossier_NN/ddm.json           (la declaration, deja structuree)
+    dossier_NN/certificat_origine.pdf
 Plus, a la racine :
     verite_terrain.json           <- ce que le moteur DOIT trouver
 
 Toutes les entreprises, adresses et numeros sont inventes.
 """
 import os, sys, json, random
+from datetime import date, timedelta
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
@@ -135,6 +137,42 @@ def colisage_pdf(path, d):
 # Justificatifs joints a certaines sous-evaluations. Cycle deterministe (pas de
 # tirage) pour ne pas decaler la suite aleatoire : les autres pieces restent
 # identiques a celles generees avant l'ajout des justificatifs.
+PAYS_NOM = {"CN": "China", "TR": "Turkiye", "IT": "Italy", "EG": "Egypt", "ES": "Spain"}
+
+
+def certificat_initial(d, rng):
+    """Certificat coherent par defaut avec la facture, le colisage et la DDM.
+    Tire avec un generateur SEPARE : la suite aleatoire principale, donc les
+    autres pieces, reste identique a celle d'avant l'ajout du certificat."""
+    origine = d["origine_ddm"]
+    ville = (d["fournisseur_ville"].split(",")[0] if origine == d["origine_transport"]
+             else PORTS[origine])
+    emission = date.fromisoformat(d["date"]) + timedelta(days=rng.randint(1, 5))
+    return {"ref": f"CO-2026-{rng.randint(100000, 999999)}",
+            "autorite": f"Chamber of Commerce of {ville}, {PAYS_NOM[origine]}",
+            "exportateur": d["fournisseur"], "destinataire": d["importateur"],
+            "origine": origine, "designation": d["designation_facture"],
+            "quantite": d["qte_facture"], "poids": d["poids_colisage"],
+            "date": emission.isoformat()}
+
+
+def certificat_pdf(path, co):
+    c = canvas.Canvas(path, pagesize=A4)
+    entete(c, "CERTIFICATE OF ORIGIN", co["ref"])
+    y = 255
+    y = ligne(c, y, "Issuing authority", co["autorite"])
+    y = ligne(c, y, "Exporter", co["exportateur"])
+    y = ligne(c, y, "Consignee", co["destinataire"])
+    y = ligne(c, y, "Country of origin", co["origine"], gras=True)
+    y = ligne(c, y, "Goods", co["designation"][:44])
+    y = ligne(c, y, "Quantity", f"{co['quantite']} pcs")
+    y = ligne(c, y, "Net weight", f"{co['poids']:,.1f} kg")
+    y = ligne(c, y, "Date of issue", co["date"])
+    c.setFont("Helvetica-Oblique", 7)
+    c.drawString(20*mm, 15*mm, "Document fictif genere pour test - aucune valeur commerciale")
+    c.save()
+
+
 JUSTIFICATIFS = [
     {"titre": "COMMERCIAL AGREEMENT", "objet": "Volume discount 60% - valid until 2026-12-31",
      "detail": ("Discount rate", "60%"), "remise": 60},
@@ -282,8 +320,9 @@ def ddm_json(d):
 
 def main():
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 20
-    if len(sys.argv) > 2:
-        random.seed(int(sys.argv[2]))
+    graine = int(sys.argv[2]) if len(sys.argv) > 2 else 7
+    random.seed(graine)
+    rng_co = random.Random(graine * 1000 + 17)   # tout ce qui touche au certificat
     base = sys.argv[3] if len(sys.argv) > 3 else "sortie"
     os.makedirs(base, exist_ok=True)
 
@@ -315,6 +354,7 @@ def main():
         rep = os.path.join(base, f"dossier_{i:02d}")
         os.makedirs(rep, exist_ok=True)
         facture_pdf(os.path.join(rep, "facture.pdf"), d)
+        certificat_pdf(os.path.join(rep, "certificat_origine.pdf"), certificat_initial(d, rng_co))
         colisage_pdf(os.path.join(rep, "colisage.pdf"), d)
         transport_pdf(os.path.join(rep, "transport.pdf"), d)
         with open(os.path.join(rep, "ddm.json"), "w", encoding="utf-8") as f:
