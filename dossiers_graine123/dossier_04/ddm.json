@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-340259",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "MEDITEX TRADING SARL",
+  "fournisseur": "IBERIA SUMINISTROS SL",
+  "reference_facture": "INV-2026-1004",
+  "code_sh": "151090",
+  "designation": "Huiles d'olive",
+  "pays_origine": "ES",
+  "quantite": 50,
+  "poids_net_kg": 250.0,
+  "valeur_cif_usd": 1050.0,
+  "incoterm": "CIF",
+  "conteneur": "CMAU2479033"
+}

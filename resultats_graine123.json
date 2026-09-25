@@ -1,0 +1,353 @@
+{
+  "nb_dossiers": 20,
+  "anomalies_posees": 19,
+  "anomalies_trouvees": 19,
+  "rappel": 1.0,
+  "alertes_emises": 19,
+  "alertes_justes": 19,
+  "precision": 1.0,
+  "propres": {
+    "nb": 6,
+    "alertes_emises": 0,
+    "dossiers_avec_alerte": [],
+    "non_liberes": []
+  },
+  "par_type": {
+    "designation_vs_sh": {
+      "posees": 1,
+      "trouvees": 1,
+      "emises": 1,
+      "justes": 1
+    },
+    "ecart_origine": {
+      "posees": 1,
+      "trouvees": 1,
+      "emises": 1,
+      "justes": 1
+    },
+    "ecart_poids": {
+      "posees": 5,
+      "trouvees": 5,
+      "emises": 5,
+      "justes": 5
+    },
+    "ecart_quantite": {
+      "posees": 3,
+      "trouvees": 3,
+      "emises": 3,
+      "justes": 3
+    },
+    "ecart_valeur": {
+      "posees": 1,
+      "trouvees": 1,
+      "emises": 1,
+      "justes": 1
+    },
+    "erreur_arithmetique": {
+      "posees": 4,
+      "trouvees": 4,
+      "emises": 4,
+      "justes": 4
+    },
+    "poids_invraisemblable": {
+      "posees": 2,
+      "trouvees": 2,
+      "emises": 2,
+      "justes": 2
+    },
+    "sous_evaluation": {
+      "posees": 2,
+      "trouvees": 2,
+      "emises": 2,
+      "justes": 2
+    }
+  },
+  "detail": [
+    {
+      "dossier": "dossier_01",
+      "propre": false,
+      "attendues": [
+        "erreur_arithmetique"
+      ],
+      "obtenues": [
+        "erreur_arithmetique"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 60,
+      "recommandation": "CONTROLE_DOCUMENTAIRE",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_02",
+      "propre": false,
+      "attendues": [
+        "designation_vs_sh",
+        "sous_evaluation"
+      ],
+      "obtenues": [
+        "sous_evaluation",
+        "designation_vs_sh"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 66,
+      "recommandation": "CONTROLE_PHYSIQUE",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_03",
+      "propre": false,
+      "attendues": [
+        "ecart_poids",
+        "ecart_quantite"
+      ],
+      "obtenues": [
+        "ecart_quantite",
+        "ecart_poids"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 95,
+      "recommandation": "CONTROLE_PHYSIQUE",
+      "analyse_partielle": false
+    },
+    {
+      "dossier": "dossier_04",
+      "propre": true,
+      "attendues": [],
+      "obtenues": [],
+      "manquees": [],
+      "en_trop": [],
+      "score": 0,
+      "recommandation": "LIBERATION",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_05",
+      "propre": true,
+      "attendues": [],
+      "obtenues": [],
+      "manquees": [],
+      "en_trop": [],
+      "score": 0,
+      "recommandation": "LIBERATION",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_06",
+      "propre": true,
+      "attendues": [],
+      "obtenues": [],
+      "manquees": [],
+      "en_trop": [],
+      "score": 0,
+      "recommandation": "LIBERATION",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_07",
+      "propre": false,
+      "attendues": [
+        "ecart_origine"
+      ],
+      "obtenues": [
+        "ecart_origine"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 70,
+      "recommandation": "CONTROLE_PHYSIQUE",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_08",
+      "propre": false,
+      "attendues": [
+        "sous_evaluation"
+      ],
+      "obtenues": [
+        "sous_evaluation"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 30,
+      "recommandation": "CONTROLE_DOCUMENTAIRE",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_09",
+      "propre": false,
+      "attendues": [
+        "erreur_arithmetique",
+        "ecart_poids"
+      ],
+      "obtenues": [
+        "ecart_poids",
+        "erreur_arithmetique"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 90,
+      "recommandation": "CONTROLE_PHYSIQUE",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_10",
+      "propre": false,
+      "attendues": [
+        "poids_invraisemblable"
+      ],
+      "obtenues": [
+        "poids_invraisemblable"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 35,
+      "recommandation": "CONTROLE_DOCUMENTAIRE",
+      "analyse_partielle": false
+    },
+    {
+      "dossier": "dossier_11",
+      "propre": false,
+      "attendues": [
+        "ecart_quantite",
+        "erreur_arithmetique"
+      ],
+      "obtenues": [
+        "ecart_quantite",
+        "erreur_arithmetique"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 92,
+      "recommandation": "CONTROLE_PHYSIQUE",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_12",
+      "propre": false,
+      "attendues": [
+        "ecart_quantite"
+      ],
+      "obtenues": [
+        "ecart_quantite"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 80,
+      "recommandation": "CONTROLE_PHYSIQUE",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_13",
+      "propre": true,
+      "attendues": [],
+      "obtenues": [],
+      "manquees": [],
+      "en_trop": [],
+      "score": 0,
+      "recommandation": "LIBERATION",
+      "analyse_partielle": false
+    },
+    {
+      "dossier": "dossier_14",
+      "propre": false,
+      "attendues": [
+        "ecart_valeur"
+      ],
+      "obtenues": [
+        "ecart_valeur"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 85,
+      "recommandation": "CONTROLE_PHYSIQUE",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_15",
+      "propre": false,
+      "attendues": [
+        "erreur_arithmetique"
+      ],
+      "obtenues": [
+        "erreur_arithmetique"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 60,
+      "recommandation": "CONTROLE_DOCUMENTAIRE",
+      "analyse_partielle": false
+    },
+    {
+      "dossier": "dossier_16",
+      "propre": false,
+      "attendues": [
+        "ecart_poids"
+      ],
+      "obtenues": [
+        "ecart_poids"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 75,
+      "recommandation": "CONTROLE_PHYSIQUE",
+      "analyse_partielle": false
+    },
+    {
+      "dossier": "dossier_17",
+      "propre": true,
+      "attendues": [],
+      "obtenues": [],
+      "manquees": [],
+      "en_trop": [],
+      "score": 0,
+      "recommandation": "LIBERATION",
+      "analyse_partielle": false
+    },
+    {
+      "dossier": "dossier_18",
+      "propre": false,
+      "attendues": [
+        "ecart_poids"
+      ],
+      "obtenues": [
+        "ecart_poids"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 75,
+      "recommandation": "CONTROLE_PHYSIQUE",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_19",
+      "propre": false,
+      "attendues": [
+        "poids_invraisemblable",
+        "ecart_poids"
+      ],
+      "obtenues": [
+        "ecart_poids",
+        "poids_invraisemblable"
+      ],
+      "manquees": [],
+      "en_trop": [],
+      "score": 84,
+      "recommandation": "CONTROLE_PHYSIQUE",
+      "analyse_partielle": true
+    },
+    {
+      "dossier": "dossier_20",
+      "propre": true,
+      "attendues": [],
+      "obtenues": [],
+      "manquees": [],
+      "en_trop": [],
+      "score": 0,
+      "recommandation": "LIBERATION",
+      "analyse_partielle": true
+    }
+  ]
+}

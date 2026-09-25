@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-567059",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "EL BAHIA NEGOCE SARL",
+  "fournisseur": "SHENZHEN BRIGHT TRADING CO. LTD",
+  "reference_facture": "INV-2026-1020",
+  "code_sh": "151090",
+  "designation": "Huiles d'olive",
+  "pays_origine": "CN",
+  "quantite": 500,
+  "poids_net_kg": 2500.0,
+  "valeur_cif_usd": 10500.0,
+  "incoterm": "CIF",
+  "conteneur": "MSCU8810601"
+}

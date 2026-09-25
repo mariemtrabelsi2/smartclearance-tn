@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-493567",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "MEDITEX TRADING SARL",
+  "fournisseur": "NILE DELTA EXPORT",
+  "reference_facture": "INV-2026-1018",
+  "code_sh": "870321",
+  "designation": "Voitures de tourisme",
+  "pays_origine": "EG",
+  "quantite": 200,
+  "poids_net_kg": 156200.0,
+  "valeur_cif_usd": 2090000.0,
+  "incoterm": "CIF",
+  "conteneur": "TGHU6755143"
+}

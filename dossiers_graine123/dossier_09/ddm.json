@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-880260",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "SOCIETE NOUR DISTRIBUTION",
+  "fournisseur": "LOMBARDIA FORNITURE SRL",
+  "reference_facture": "INV-2026-1009",
+  "code_sh": "940360",
+  "designation": "Meubles en bois",
+  "pays_origine": "IT",
+  "quantite": 200,
+  "poids_net_kg": 4340.0,
+  "valeur_cif_usd": 21280.0,
+  "incoterm": "CIF",
+  "conteneur": "CMAU3749090"
+}
