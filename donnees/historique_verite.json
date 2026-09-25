@@ -1,0 +1,46 @@
+{
+  "derive_prix": [
+    {
+      "importateur": "ATLAS IMPORT SARL",
+      "code_sh": "847130",
+      "pente_pct_par_trimestre": -5.0
+    },
+    {
+      "importateur": "CARTHAGE IMPORT SARL",
+      "code_sh": "300490",
+      "pente_pct_par_trimestre": -5.0
+    },
+    {
+      "importateur": "SAHEL IMPORT SARL",
+      "code_sh": "640399",
+      "pente_pct_par_trimestre": -5.0
+    }
+  ],
+  "changement_secteur": [
+    {
+      "importateur": "JASMIN IMPORT SARL",
+      "mois": 18,
+      "chapitre_avant": "09",
+      "chapitre_apres": "85"
+    },
+    {
+      "importateur": "OASIS IMPORT SARL",
+      "mois": 18,
+      "chapitre_avant": "72",
+      "chapitre_apres": "30"
+    }
+  ],
+  "fournisseur_partage": {
+    "fournisseur": "GLOBAL SOURCING FZE",
+    "importateurs": [
+      "MEDINA IMPORT SARL",
+      "ZITOUNA IMPORT SARL",
+      "KAIROUAN IMPORT SARL",
+      "BIZERTE IMPORT SARL"
+    ],
+    "facteur_prix": 0.6
+  },
+  "nb_declarations": 500,
+  "nb_importateurs": 30,
+  "periode": "2024-01 a 2025-12"
+}
