@@ -25,6 +25,7 @@ PIECES = {
     "ecart_reference": ["facture commerciale originale"],
     "poids_invraisemblable": ["fiche technique du produit", "ticket de pesee"],
     "designation_vs_sh": ["fiche technique du produit", "catalogue fournisseur"],
+    "designation_vague": ["fiche technique du produit", "designation detaillee (marque, modele, reference)"],
     "sous_evaluation_via_reclassement": ["fiche technique du produit", "contrat commercial",
                                          "preuve de paiement (avis SWIFT, releve bancaire)"],
     "sous_evaluation": ["contrat commercial", "preuve de paiement (avis SWIFT, releve bancaire)",

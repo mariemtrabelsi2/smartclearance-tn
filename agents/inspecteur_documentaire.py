@@ -4,6 +4,8 @@ Il ne conclut jamais a la fraude : il pose des faits compares cote a cote,
 avec l'endroit ou l'inspecteur peut les verifier.
 """
 import json
+import re
+import unicodedata
 from pathlib import Path
 
 from agents.base import RapportAgent, NIVEAU_CONTRADICTION, NIVEAU_ECART
@@ -47,6 +49,31 @@ def _produit(designation):
     for prod in PRODUITS:
         if any(m in d for m in prod["mots"]):
             return prod
+    return None
+
+
+TERMES_GENERIQUES = [r"marchandises? diverses?", r"divers(?:es)?", r"[ée]chantillons?",
+                     r"samples?", r"general goods", r"assorted", r"miscellaneous", r"various"]
+
+
+def _designation_vague(designation, prod):
+    """Renvoie le motif ('terme generique' / 'trop courte') ou None.
+    Une designation que la table sait classer n'est pas 'trop courte' : le
+    critere est de pouvoir verifier le classement, pas de compter les mots."""
+    if not designation:
+        return None
+    # Accents retires : 'Échantillons' et 'Echantillons' doivent se valoir.
+    texte = "".join(c for c in unicodedata.normalize("NFKD", designation.lower())
+                    if not unicodedata.combining(c))
+    if any(re.search(rf"\b{t}\b", texte) for t in TERMES_GENERIQUES):
+        return "terme generique"
+    mots = designation.split()
+    # Chiffre (1200cc, 128GB, 5L) = specification ; mot tout en majuscules
+    # ou alphanumerique (SAMSUNG, XR-200) = marque ou reference produit.
+    reference = any(re.search(r"\d", m) for m in mots)
+    marque = any(len(m) >= 2 and m.isupper() for m in mots)
+    if len(mots) < 4 and not reference and not marque and prod is None:
+        return "trop courte"
     return None
 
 
@@ -165,6 +192,17 @@ def analyser(dossier: str) -> RapportAgent:
     prod = _produit(designation)
     if designation and prod is None:
         r.non_lus.append(f"produit non reconnu par la table de reference : '{designation}'")
+
+    vague = _designation_vague(fac["designation"], prod)
+    if vague:
+        r.ajouter(
+            type="designation_vague", niveau=NIVEAU_ECART, gravite=45,
+            message=("Designation insuffisamment precise pour verifier le classement "
+                     "tarifaire. Complement d'information a demander."),
+            preuve={"designation_facture": fac["designation"],
+                    "longueur": len(fac["designation"].split()), "motif": vague},
+            source="facture : ligne article, colonne DESCRIPTION",
+        )
 
     if prod:
         code_sh = str(ddm.get("code_sh") or "")
