@@ -1,6 +1,6 @@
 {
   "nb_dossiers": 20,
-  "nb_anomalies_posees": 19,
+  "nb_anomalies_posees": 22,
   "dossiers": [
     {
       "dossier": "dossier_01",
@@ -114,11 +114,15 @@
     {
       "dossier": "dossier_10",
       "propre": false,
-      "nb_anomalies": 1,
+      "nb_anomalies": 2,
       "anomalies": [
         {
           "type": "ecart_quantite",
           "detail": "facture 200 pcs vs colisage 280 pcs"
+        },
+        {
+          "type": "autorite_emettrice_incoherente",
+          "detail": "origine certifiee EG mais chambre de Shanghai (CN)"
         }
       ],
       "justification_presente": false
@@ -138,7 +142,7 @@
     {
       "dossier": "dossier_12",
       "propre": false,
-      "nb_anomalies": 2,
+      "nb_anomalies": 3,
       "anomalies": [
         {
           "type": "poids_invraisemblable",
@@ -147,6 +151,10 @@
         {
           "type": "designation_vs_sh",
           "detail": "facture dit 'Smartphone 6.5 inch 128GB' mais SH declare 732690"
+        },
+        {
+          "type": "ecart_origine_certificat",
+          "detail": "certificat ES vs DDM IT"
         }
       ],
       "justification_presente": false
@@ -185,11 +193,15 @@
     {
       "dossier": "dossier_16",
       "propre": false,
-      "nb_anomalies": 1,
+      "nb_anomalies": 2,
       "anomalies": [
         {
           "type": "designation_vs_sh",
           "detail": "facture dit 'Cotton T-shirt' mais SH declare 732690"
+        },
+        {
+          "type": "ecart_exportateur",
+          "detail": "facture IBERIA SUMINISTROS SL vs certificat SHENZHEN BRIGHT TRADING CO. LTD"
         }
       ],
       "justification_presente": false

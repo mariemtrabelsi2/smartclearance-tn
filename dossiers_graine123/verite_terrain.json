@@ -1,15 +1,19 @@
 {
   "nb_dossiers": 20,
-  "nb_anomalies_posees": 19,
+  "nb_anomalies_posees": 22,
   "dossiers": [
     {
       "dossier": "dossier_01",
       "propre": false,
-      "nb_anomalies": 1,
+      "nb_anomalies": 2,
       "anomalies": [
         {
           "type": "erreur_arithmetique",
           "detail": "800 x 191.2 != 122368.0 sur la facture"
+        },
+        {
+          "type": "ecart_exportateur",
+          "detail": "facture LOMBARDIA FORNITURE SRL vs certificat SHENZHEN BRIGHT TRADING CO. LTD"
         }
       ],
       "justification_presente": false
@@ -17,7 +21,7 @@
     {
       "dossier": "dossier_02",
       "propre": false,
-      "nb_anomalies": 2,
+      "nb_anomalies": 3,
       "anomalies": [
         {
           "type": "designation_vs_sh",
@@ -26,6 +30,10 @@
         {
           "type": "sous_evaluation",
           "detail": "0.76 USD/kg vs reference 4.2 USD/kg"
+        },
+        {
+          "type": "autorite_emettrice_incoherente",
+          "detail": "origine certifiee ES mais chambre de Alexandria (EG)"
         }
       ],
       "justification_presente": true,
@@ -165,11 +173,15 @@
     {
       "dossier": "dossier_14",
       "propre": false,
-      "nb_anomalies": 1,
+      "nb_anomalies": 2,
       "anomalies": [
         {
           "type": "ecart_valeur",
           "detail": "facture 5680.0 USD vs DDM 3124.0 USD"
+        },
+        {
+          "type": "ecart_origine_certificat",
+          "detail": "certificat CN vs DDM TR"
         }
       ],
       "justification_presente": false

@@ -156,6 +156,37 @@ def certificat_initial(d, rng):
             "date": emission.isoformat()}
 
 
+# Anomalies portees par le certificat. Liste separee d'ANOMALIES : les ajouter
+# au tirage principal decalerait toute la suite aleatoire et changerait tous
+# les dossiers, rendant impossible la comparaison avec les jeux precedents.
+ANOMALIES_CERTIFICAT = [
+    "ecart_origine_certificat",        # certificat != DDM sur l'origine
+    "autorite_emettrice_incoherente",  # chambre de commerce hors du pays certifie
+    "ecart_exportateur",               # exportateur du certificat != vendeur facture
+]
+
+
+def injecter_certificat(co, d, quelles, rng):
+    posees = []
+    for a in quelles:
+        if a == "ecart_origine_certificat":
+            autre = rng.choice([p for p in PAYS_NOM if p not in (d["origine_ddm"], d["origine_transport"])])
+            co["origine"] = autre
+            co["autorite"] = f"Chamber of Commerce of {PORTS[autre]}, {PAYS_NOM[autre]}"
+            posees.append({"type": a, "detail": f"certificat {autre} vs DDM {d['origine_ddm']}"})
+        elif a == "autorite_emettrice_incoherente":
+            autre = rng.choice([p for p in PAYS_NOM if p != co["origine"]])
+            co["autorite"] = f"Chamber of Commerce of {PORTS[autre]}, {PAYS_NOM[autre]}"
+            posees.append({"type": a, "detail":
+                f"origine certifiee {co['origine']} mais chambre de {PORTS[autre]} ({autre})"})
+        elif a == "ecart_exportateur":
+            autre = rng.choice([f[0] for f in FOURNISSEURS if f[0] != d["fournisseur"]])
+            co["exportateur"] = autre
+            posees.append({"type": a, "detail":
+                f"facture {d['fournisseur']} vs certificat {autre}"})
+    return posees
+
+
 def certificat_pdf(path, co):
     c = canvas.Canvas(path, pagesize=A4)
     entete(c, "CERTIFICATE OF ORIGIN", co["ref"])
@@ -345,16 +376,26 @@ def main():
             plan.append([pool[k]])
     random.shuffle(plan)
 
+    # Chaque anomalie du certificat au moins une fois, sur un dossier DEJA
+    # anormal : les dossiers propres restent propres, la mesure des fausses
+    # alertes reste comparable d'un jeu a l'autre.
+    anormaux = [i for i, q in enumerate(plan, start=1) if q]
+    cibles = {}
+    for t, i in zip(ANOMALIES_CERTIFICAT, rng_co.sample(anormaux, len(ANOMALIES_CERTIFICAT))):
+        cibles.setdefault(i, []).append(t)
+
     verite, total_anos, n_justif = [], 0, 0
     for i, quelles in enumerate(plan, start=1):
         d = construire(i)
         posees = injecter(d, quelles)
+        co = certificat_initial(d, rng_co)
+        posees += injecter_certificat(co, d, cibles.get(i, []), rng_co)
         total_anos += len(posees)
 
         rep = os.path.join(base, f"dossier_{i:02d}")
         os.makedirs(rep, exist_ok=True)
         facture_pdf(os.path.join(rep, "facture.pdf"), d)
-        certificat_pdf(os.path.join(rep, "certificat_origine.pdf"), certificat_initial(d, rng_co))
+        certificat_pdf(os.path.join(rep, "certificat_origine.pdf"), co)
         colisage_pdf(os.path.join(rep, "colisage.pdf"), d)
         transport_pdf(os.path.join(rep, "transport.pdf"), d)
         with open(os.path.join(rep, "ddm.json"), "w", encoding="utf-8") as f:
@@ -390,7 +431,7 @@ def main():
         for a in v["anomalies"]:
             compte[a["type"]] = compte.get(a["type"], 0) + 1
     print("Repartition par type :")
-    for t in ANOMALIES:
+    for t in ANOMALIES + ANOMALIES_CERTIFICAT:
         print(f"  {t:<24} {compte.get(t, 0)}")
     print(f"\nVerite terrain : {base}/verite_terrain.json")
 

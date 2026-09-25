@@ -1,6 +1,6 @@
 {
   "nb_dossiers": 20,
-  "nb_anomalies_posees": 19,
+  "nb_anomalies_posees": 22,
   "dossiers": [
     {
       "dossier": "dossier_01",
@@ -47,11 +47,15 @@
     {
       "dossier": "dossier_05",
       "propre": false,
-      "nb_anomalies": 1,
+      "nb_anomalies": 2,
       "anomalies": [
         {
           "type": "poids_invraisemblable",
           "detail": "1.400 kg par unite pour 'Wooden office desk'"
+        },
+        {
+          "type": "ecart_exportateur",
+          "detail": "facture NILE DELTA EXPORT vs certificat SHENZHEN BRIGHT TRADING CO. LTD"
         }
       ],
       "justification_presente": false
@@ -115,11 +119,15 @@
     {
       "dossier": "dossier_10",
       "propre": false,
-      "nb_anomalies": 1,
+      "nb_anomalies": 2,
       "anomalies": [
         {
           "type": "ecart_quantite",
           "detail": "facture 200 pcs vs colisage 140 pcs"
+        },
+        {
+          "type": "autorite_emettrice_incoherente",
+          "detail": "origine certifiee ES mais chambre de Genova (IT)"
         }
       ],
       "justification_presente": false
@@ -176,11 +184,15 @@
     {
       "dossier": "dossier_16",
       "propre": false,
-      "nb_anomalies": 1,
+      "nb_anomalies": 2,
       "anomalies": [
         {
           "type": "ecart_poids",
           "detail": "colisage 160.0 kg vs DDM 113.6 kg"
+        },
+        {
+          "type": "ecart_origine_certificat",
+          "detail": "certificat TR vs DDM CN"
         }
       ],
       "justification_presente": false
