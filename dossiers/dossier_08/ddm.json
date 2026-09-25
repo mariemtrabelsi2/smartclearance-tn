@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-284777",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "COMPTOIR DU SUD SA",
+  "fournisseur": "LOMBARDIA FORNITURE SRL",
+  "reference_facture": "INV-2026-1008",
+  "code_sh": "940360",
+  "designation": "Meubles en bois",
+  "pays_origine": "IT",
+  "quantite": 500,
+  "poids_net_kg": 17500.0,
+  "valeur_cif_usd": 11970.0,
+  "incoterm": "CIF",
+  "conteneur": "TGHU7967519"
+}

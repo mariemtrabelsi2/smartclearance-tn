@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-961850",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "STE ESSALEM IMPORT SARL",
+  "fournisseur": "NILE DELTA EXPORT",
+  "reference_facture": "INV-2026-1005",
+  "code_sh": "940360",
+  "designation": "Meubles en bois",
+  "pays_origine": "EG",
+  "quantite": 50,
+  "poids_net_kg": 70.0,
+  "valeur_cif_usd": 6650.0,
+  "incoterm": "CIF",
+  "conteneur": "TGHU2090518"
+}

@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-969117",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "SOCIETE NOUR DISTRIBUTION",
+  "fournisseur": "NILE DELTA EXPORT",
+  "reference_facture": "INV-2026-1014",
+  "code_sh": "151090",
+  "designation": "Huiles d'olive",
+  "pays_origine": "EG",
+  "quantite": 500,
+  "poids_net_kg": 2500.0,
+  "valeur_cif_usd": 8400.0,
+  "incoterm": "CIF",
+  "conteneur": "MSCU3417890"
+}

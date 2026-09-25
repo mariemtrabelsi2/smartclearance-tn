@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-272975",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "SOCIETE NOUR DISTRIBUTION",
+  "fournisseur": "IBERIA SUMINISTROS SL",
+  "reference_facture": "INV-2026-1003",
+  "code_sh": "870321",
+  "designation": "Voitures de tourisme",
+  "pays_origine": "ES",
+  "quantite": 200,
+  "poids_net_kg": 220000.0,
+  "valeur_cif_usd": 2090000.0,
+  "incoterm": "CIF",
+  "conteneur": "TGHU5830794"
+}

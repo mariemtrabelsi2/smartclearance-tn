@@ -1,0 +1,216 @@
+{
+  "nb_dossiers": 20,
+  "nb_anomalies_posees": 19,
+  "dossiers": [
+    {
+      "dossier": "dossier_01",
+      "propre": true,
+      "nb_anomalies": 0,
+      "anomalies": []
+    },
+    {
+      "dossier": "dossier_02",
+      "propre": true,
+      "nb_anomalies": 0,
+      "anomalies": []
+    },
+    {
+      "dossier": "dossier_03",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "ecart_quantite",
+          "detail": "facture 200 pcs vs colisage 320 pcs"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_04",
+      "propre": false,
+      "nb_anomalies": 2,
+      "anomalies": [
+        {
+          "type": "ecart_origine",
+          "detail": "transport TR vs DDM EG"
+        },
+        {
+          "type": "ecart_quantite",
+          "detail": "facture 500 pcs vs colisage 350 pcs"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_05",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "poids_invraisemblable",
+          "detail": "1.400 kg par unite pour 'Wooden office desk'"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_06",
+      "propre": false,
+      "nb_anomalies": 2,
+      "anomalies": [
+        {
+          "type": "designation_vs_sh",
+          "detail": "facture dit 'Olive oil virgin 5L' mais SH declare 732690"
+        },
+        {
+          "type": "poids_invraisemblable",
+          "detail": "0.200 kg par unite pour 'Olive oil virgin 5L'"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_07",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "poids_invraisemblable",
+          "detail": "0.008 kg par unite pour 'Smartphone 6.5 inch 128GB'"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_08",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "sous_evaluation",
+          "detail": "0.68 USD/kg vs reference 3.8 USD/kg"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_09",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "ecart_poids",
+          "detail": "colisage 10.0 kg vs DDM 7.1 kg"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_10",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "ecart_quantite",
+          "detail": "facture 200 pcs vs colisage 140 pcs"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_11",
+      "propre": false,
+      "nb_anomalies": 2,
+      "anomalies": [
+        {
+          "type": "ecart_valeur",
+          "detail": "facture 1050.0 USD vs DDM 714.0 USD"
+        },
+        {
+          "type": "ecart_quantite",
+          "detail": "facture 50 pcs vs colisage 70 pcs"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_12",
+      "propre": true,
+      "nb_anomalies": 0,
+      "anomalies": []
+    },
+    {
+      "dossier": "dossier_13",
+      "propre": true,
+      "nb_anomalies": 0,
+      "anomalies": []
+    },
+    {
+      "dossier": "dossier_14",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "erreur_arithmetique",
+          "detail": "500 x 21.0 != 8400.0 sur la facture"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_15",
+      "propre": true,
+      "nb_anomalies": 0,
+      "anomalies": []
+    },
+    {
+      "dossier": "dossier_16",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "ecart_poids",
+          "detail": "colisage 160.0 kg vs DDM 113.6 kg"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_17",
+      "propre": false,
+      "nb_anomalies": 1,
+      "anomalies": [
+        {
+          "type": "sous_evaluation",
+          "detail": "45.45 USD/kg vs reference 142.0 USD/kg"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_18",
+      "propre": false,
+      "nb_anomalies": 2,
+      "anomalies": [
+        {
+          "type": "ecart_poids",
+          "detail": "colisage 1600.0 kg vs DDM 992.0 kg"
+        },
+        {
+          "type": "sous_evaluation",
+          "detail": "6.94 USD/kg vs reference 23.9 USD/kg"
+        }
+      ]
+    },
+    {
+      "dossier": "dossier_19",
+      "propre": true,
+      "nb_anomalies": 0,
+      "anomalies": []
+    },
+    {
+      "dossier": "dossier_20",
+      "propre": false,
+      "nb_anomalies": 2,
+      "anomalies": [
+        {
+          "type": "ecart_valeur",
+          "detail": "facture 2100.0 USD vs DDM 1155.0 USD"
+        },
+        {
+          "type": "ecart_poids",
+          "detail": "colisage 500.0 kg vs DDM 310.0 kg"
+        }
+      ]
+    }
+  ]
+}

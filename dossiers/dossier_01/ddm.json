@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-657549",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "EL BAHIA NEGOCE SARL",
+  "fournisseur": "SHENZHEN BRIGHT TRADING CO. LTD",
+  "reference_facture": "INV-2026-1001",
+  "code_sh": "870321",
+  "designation": "Voitures de tourisme",
+  "pays_origine": "CN",
+  "quantite": 1500,
+  "poids_net_kg": 1650000.0,
+  "valeur_cif_usd": 15675000.0,
+  "incoterm": "CIF",
+  "conteneur": "CMAU1999941"
+}

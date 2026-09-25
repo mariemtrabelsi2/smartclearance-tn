@@ -1,0 +1,16 @@
+{
+  "numero_ddm": "DDM-2026-225728",
+  "bureau": "Rades",
+  "regime": "Mise a la consommation",
+  "importateur": "MEDITEX TRADING SARL",
+  "fournisseur": "ANADOLU IHRACAT A.S.",
+  "reference_facture": "INV-2026-1019",
+  "code_sh": "151090",
+  "designation": "Huiles d'olive",
+  "pays_origine": "TR",
+  "quantite": 100,
+  "poids_net_kg": 500.0,
+  "valeur_cif_usd": 2100.0,
+  "incoterm": "CIF",
+  "conteneur": "CMAU1032016"
+}
