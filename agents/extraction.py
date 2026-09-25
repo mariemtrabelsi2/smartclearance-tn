@@ -64,13 +64,14 @@ def nombre(brut):
     de risquer de lire 1,5 comme 15."""
     if brut is None:
         return None
-    m = re.search(r"-?\d{1,3}(?:,\d{3})+(?:\.\d+)?|-?\d+(?:\.\d+)?", str(brut))
+    m = re.search(r"-?[\d][\d,.]*", str(brut))
     if not m:
         return None
-    try:
-        return float(m.group(0).replace(",", ""))
-    except ValueError:
+    jeton = m.group(0).rstrip(".,")
+    # Le jeton ENTIER doit etre bien forme : '1,5' ne doit pas devenir 1.
+    if not re.fullmatch(r"-?\d{1,3}(?:,\d{3})+(?:\.\d+)?|-?\d+(?:\.\d+)?", jeton):
         return None
+    return float(jeton.replace(",", ""))
 
 
 def _typer(champ, valeur):
