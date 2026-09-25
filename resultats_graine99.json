@@ -1,8 +1,8 @@
 {
   "nb_dossiers": 20,
-  "anomalies_posees": 19,
+  "anomalies_posees": 22,
   "anomalies_trouvees": 19,
-  "rappel": 1.0,
+  "rappel": 0.864,
   "alertes_emises": 19,
   "alertes_justes": 19,
   "precision": 1.0,
@@ -21,17 +21,35 @@
     "dossiers_physique_par_profil_seul": []
   },
   "par_type": {
+    "autorite_emettrice_incoherente": {
+      "posees": 1,
+      "trouvees": 0,
+      "emises": 0,
+      "justes": 0
+    },
     "designation_vs_sh": {
       "posees": 4,
       "trouvees": 4,
       "emises": 4,
       "justes": 4
     },
+    "ecart_exportateur": {
+      "posees": 1,
+      "trouvees": 0,
+      "emises": 0,
+      "justes": 0
+    },
     "ecart_origine": {
       "posees": 4,
       "trouvees": 4,
       "emises": 4,
       "justes": 4
+    },
+    "ecart_origine_certificat": {
+      "posees": 1,
+      "trouvees": 0,
+      "emises": 0,
+      "justes": 0
     },
     "ecart_poids": {
       "posees": 1,
@@ -215,12 +233,15 @@
       "dossier": "dossier_10",
       "propre": false,
       "attendues": [
-        "ecart_quantite"
+        "ecart_quantite",
+        "autorite_emettrice_incoherente"
       ],
       "obtenues": [
         "ecart_quantite"
       ],
-      "manquees": [],
+      "manquees": [
+        "autorite_emettrice_incoherente"
+      ],
       "en_trop": [],
       "alertes_profil": [],
       "score": 80,
@@ -248,13 +269,16 @@
       "propre": false,
       "attendues": [
         "poids_invraisemblable",
-        "designation_vs_sh"
+        "designation_vs_sh",
+        "ecart_origine_certificat"
       ],
       "obtenues": [
         "designation_vs_sh",
         "poids_invraisemblable"
       ],
-      "manquees": [],
+      "manquees": [
+        "ecart_origine_certificat"
+      ],
       "en_trop": [],
       "alertes_profil": [
         "changement_secteur"
@@ -311,12 +335,15 @@
       "dossier": "dossier_16",
       "propre": false,
       "attendues": [
-        "designation_vs_sh"
+        "designation_vs_sh",
+        "ecart_exportateur"
       ],
       "obtenues": [
         "designation_vs_sh"
       ],
-      "manquees": [],
+      "manquees": [
+        "ecart_exportateur"
+      ],
       "en_trop": [],
       "alertes_profil": [
         "changement_secteur"

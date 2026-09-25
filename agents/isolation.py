@@ -6,10 +6,15 @@ qui porte l'alerte, la foret ne fait que majorer (x1.15 au plus) la gravite
 d'une alerte de prix deja emise quand elle la confirme.
 """
 import math
+import os
 from functools import lru_cache
 from pathlib import Path
 
 from agents.profileur import HISTORIQUE_DEFAUT, lire_historique
+
+# Un seul fil pour OpenBLAS (charge par scikit-learn) : par defaut il reserve
+# de la memoire par coeur, et sur un poste charge l'import echoue en MemoryError.
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
 
 # Score d'anomalie de Liu et al. (2008), entre 0 et 1 : proche de 1 = isole,
 # nettement sous 0,5 = normal. Seuil fixe a priori, pas ajuste sur les tests.
@@ -52,7 +57,9 @@ def score_isolation(ddm, historique_csv=HISTORIQUE_DEFAUT):
         return None
     try:
         foret = _forets(str(historique_csv)).get(str(ddm.get("code_sh")))
-    except ImportError:
+    except Exception:
+        # Signal secondaire : s'il ne peut pas etre calcule (bibliotheque absente,
+        # memoire insuffisante), l'analyse continue sans lui.
         return None
     v, p = ddm.get("valeur_cif_usd"), ddm.get("poids_net_kg")
     if foret is None or not v or not p:
