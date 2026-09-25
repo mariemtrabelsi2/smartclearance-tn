@@ -108,7 +108,9 @@ def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT) -> RapportAgent
     mediane = statistics.median(prix_ref)
     ecart = 100 * (prix_kg - mediane) / mediane
     r.donnees.update({"prix_kg_reference": mediane, "ecart_pct": round(ecart, 1),
-                      "fiabilite_reference": fiabilite, "origines_reference": origines})
+                      "fiabilite_reference": fiabilite, "origines_reference": origines,
+                      "type_reference": "identiques" if exacte else "similaires",
+                      "nb_observations": len(prix_ref)})
 
     if ecart <= seuil:
         preuve = {"prix_kg_declare": round(prix_kg, 2), "prix_kg_reference": mediane,
