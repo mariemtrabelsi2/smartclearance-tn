@@ -14,6 +14,7 @@ from agents.base import RapportAgent, NIVEAU_ECART
 
 RACINE = Path(__file__).resolve().parent.parent
 HISTORIQUE_DEFAUT = RACINE / "donnees" / "historique.csv"
+PAYS_RISQUE_DEFAUT = RACINE / "donnees" / "pays_risque.csv"
 
 ANCIENNETE_MIN_MOIS = 6
 DERIVE_MIN_DECLARATIONS = 6
@@ -24,6 +25,7 @@ PARTAGE_MIN_AVEC_ALERTES = 2
 SEUIL_SOUS_EVAL_HISTO = 0.7       # prix <= 70 % de la mediane du code SH = sous-evaluation passee
 
 TYPES = {"anciennete_importateur", "fournisseur_inconnu", "changement_secteur",
+         "origine_juridiction_surveillee",
          "derive_prix", "fournisseur_partage"}
 
 
@@ -44,6 +46,15 @@ def lire_historique(chemin):
     return lignes
 
 
+def lire_pays_risque(chemin):
+    """Lignes '#' ignorees : elles portent l'avertissement sur l'origine de la liste."""
+    if not Path(chemin).exists():
+        return {}
+    with open(chemin, newline="", encoding="utf-8") as f:
+        lignes = [l for l in f if not l.lstrip().startswith("#")]
+    return {l["code_pays"].strip().upper(): l for l in csv.DictReader(lignes)}
+
+
 def _norm(s):
     return " ".join(str(s or "").upper().split())
 
@@ -62,7 +73,8 @@ def _regression(xs, ys):
     return pente, t
 
 
-def analyser(ddm: dict, historique_csv=HISTORIQUE_DEFAUT, date_ddm=None) -> RapportAgent:
+def analyser(ddm: dict, historique_csv=HISTORIQUE_DEFAUT, date_ddm=None,
+             pays_risque_csv=PAYS_RISQUE_DEFAUT) -> RapportAgent:
     """date_ddm : date de l'operation. On ne regarde que l'historique ANTERIEUR,
     sinon l'operation se justifierait elle-meme (un changement de secteur
     deviendrait 'habituel' des qu'il est enregistre)."""
@@ -87,6 +99,24 @@ def analyser(ddm: dict, historique_csv=HISTORIQUE_DEFAUT, date_ddm=None) -> Rapp
         r.non_lus.append(f"historique_importateur : '{ddm.get('importateur')}' absent de l'historique")
         r.statut = "INCOMPLET"
         return r
+
+    # Juridiction sous surveillance : critere objectif et cite (liste GAFI), pas
+    # un jugement sur l'operateur. La DDM ne donne pas le pays du fournisseur :
+    # on le controle seulement s'il est fourni.
+    liste = lire_pays_risque(pays_risque_csv)
+    for role, code in (("pays d'origine", ddm.get("pays_origine")),
+                       ("pays du fournisseur", ddm.get("pays_fournisseur"))):
+        entree = liste.get(str(code or "").strip().upper())
+        if entree:
+            r.ajouter(
+                type="origine_juridiction_surveillee", niveau=NIVEAU_ECART, gravite=35,
+                message=(f"Le {role} ({entree['code_pays']}) figure sur la liste des juridictions "
+                         f"sous surveillance renforcee : {entree['motif']}."),
+                preuve={"pays": entree["code_pays"], "motif": entree["motif"],
+                        "source": entree["source"]},
+                source=f"{Path(pays_risque_csv).name}",
+            )
+            break
 
     # a) Anciennete
     premiere = min(l["date"] for l in siennes)

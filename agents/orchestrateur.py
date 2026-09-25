@@ -33,6 +33,7 @@ PIECES = {
     "sous_evaluation_via_reclassement": ["fiche technique du produit", "contrat commercial",
                                          "preuve de paiement (avis SWIFT, releve bancaire)"],
     "anciennete_importateur": ["extrait du registre de commerce"],
+    "origine_juridiction_surveillee": ["certificat d'origine", "justificatif du circuit de paiement"],
     "fournisseur_inconnu": ["contrat commercial", "coordonnees et registre du fournisseur"],
     "changement_secteur": ["justification de la nouvelle activite (registre de commerce, agrement)"],
     "derive_prix": ["factures d'achats anterieurs", "justification de l'evolution des prix"],

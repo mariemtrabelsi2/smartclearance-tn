@@ -1,0 +1,8 @@
+# LISTE D'ILLUSTRATION, A REMPLACER PAR LA LISTE OFFICIELLE EN PRODUCTION.
+# Critere unique : juridictions sous surveillance renforcee du GAFI (FATF, "Jurisdictions under Increased Monitoring").
+# Entrees relevees sur la publication de fevrier 2025 ; la liste est revue a chaque pleniere (fevrier, juin, octobre).
+# Source officielle : https://www.fatf-gafi.org/en/countries/black-and-grey-lists.html
+code_pays,niveau,motif,source
+HT,moyen,Juridiction sous surveillance renforcee du GAFI,"GAFI, Jurisdictions under Increased Monitoring, fevrier 2025 (illustration)"
+SY,moyen,Juridiction sous surveillance renforcee du GAFI,"GAFI, Jurisdictions under Increased Monitoring, fevrier 2025 (illustration)"
+YE,moyen,Juridiction sous surveillance renforcee du GAFI,"GAFI, Jurisdictions under Increased Monitoring, fevrier 2025 (illustration)"
