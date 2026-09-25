@@ -6,13 +6,15 @@
       "dossier": "dossier_01",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_02",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_03",
@@ -23,7 +25,8 @@
           "type": "ecart_quantite",
           "detail": "facture 200 pcs vs colisage 320 pcs"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_04",
@@ -38,7 +41,8 @@
           "type": "ecart_quantite",
           "detail": "facture 500 pcs vs colisage 350 pcs"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_05",
@@ -49,7 +53,8 @@
           "type": "poids_invraisemblable",
           "detail": "1.400 kg par unite pour 'Wooden office desk'"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_06",
@@ -64,7 +69,8 @@
           "type": "poids_invraisemblable",
           "detail": "0.200 kg par unite pour 'Olive oil virgin 5L'"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_07",
@@ -75,7 +81,8 @@
           "type": "poids_invraisemblable",
           "detail": "0.008 kg par unite pour 'Smartphone 6.5 inch 128GB'"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_08",
@@ -86,7 +93,12 @@
           "type": "sous_evaluation",
           "detail": "0.68 USD/kg vs reference 3.8 USD/kg"
         }
-      ]
+      ],
+      "justification_presente": true,
+      "justificatif": {
+        "type": "COMMERCIAL AGREEMENT",
+        "remise_annoncee_pct": 60
+      }
     },
     {
       "dossier": "dossier_09",
@@ -97,7 +109,8 @@
           "type": "ecart_poids",
           "detail": "colisage 10.0 kg vs DDM 7.1 kg"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_10",
@@ -108,7 +121,8 @@
           "type": "ecart_quantite",
           "detail": "facture 200 pcs vs colisage 140 pcs"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_11",
@@ -123,19 +137,22 @@
           "type": "ecart_quantite",
           "detail": "facture 50 pcs vs colisage 70 pcs"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_12",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_13",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_14",
@@ -146,13 +163,15 @@
           "type": "erreur_arithmetique",
           "detail": "500 x 21.0 != 8400.0 sur la facture"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_15",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_16",
@@ -163,7 +182,8 @@
           "type": "ecart_poids",
           "detail": "colisage 160.0 kg vs DDM 113.6 kg"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_17",
@@ -174,7 +194,12 @@
           "type": "sous_evaluation",
           "detail": "45.45 USD/kg vs reference 142.0 USD/kg"
         }
-      ]
+      ],
+      "justification_presente": true,
+      "justificatif": {
+        "type": "CREDIT NOTE",
+        "remise_annoncee_pct": 20
+      }
     },
     {
       "dossier": "dossier_18",
@@ -189,13 +214,19 @@
           "type": "sous_evaluation",
           "detail": "6.94 USD/kg vs reference 23.9 USD/kg"
         }
-      ]
+      ],
+      "justification_presente": true,
+      "justificatif": {
+        "type": "PROMOTIONAL OFFER",
+        "remise_annoncee_pct": 30
+      }
     },
     {
       "dossier": "dossier_19",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_20",
@@ -210,7 +241,8 @@
           "type": "ecart_poids",
           "detail": "colisage 500.0 kg vs DDM 310.0 kg"
         }
-      ]
+      ],
+      "justification_presente": false
     }
   ]
 }

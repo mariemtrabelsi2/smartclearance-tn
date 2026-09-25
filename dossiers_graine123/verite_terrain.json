@@ -11,7 +11,8 @@
           "type": "erreur_arithmetique",
           "detail": "800 x 191.2 != 122368.0 sur la facture"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_02",
@@ -26,7 +27,12 @@
           "type": "sous_evaluation",
           "detail": "0.76 USD/kg vs reference 4.2 USD/kg"
         }
-      ]
+      ],
+      "justification_presente": true,
+      "justificatif": {
+        "type": "COMMERCIAL AGREEMENT",
+        "remise_annoncee_pct": 60
+      }
     },
     {
       "dossier": "dossier_03",
@@ -41,25 +47,29 @@
           "type": "ecart_quantite",
           "detail": "facture 500 pcs vs colisage 350 pcs"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_04",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_05",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_06",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_07",
@@ -70,7 +80,8 @@
           "type": "ecart_origine",
           "detail": "transport IT vs DDM CN"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_08",
@@ -81,7 +92,12 @@
           "type": "sous_evaluation",
           "detail": "0.76 USD/kg vs reference 4.2 USD/kg"
         }
-      ]
+      ],
+      "justification_presente": true,
+      "justificatif": {
+        "type": "CREDIT NOTE",
+        "remise_annoncee_pct": 20
+      }
     },
     {
       "dossier": "dossier_09",
@@ -96,7 +112,8 @@
           "type": "ecart_poids",
           "detail": "colisage 7000.0 kg vs DDM 4340.0 kg"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_10",
@@ -107,7 +124,8 @@
           "type": "poids_invraisemblable",
           "detail": "0.320 kg par unite pour 'LED TV 43 inch Smart'"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_11",
@@ -122,7 +140,8 @@
           "type": "erreur_arithmetique",
           "detail": "50 x 133.0 != 5320.0 sur la facture"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_12",
@@ -133,13 +152,15 @@
           "type": "ecart_quantite",
           "detail": "facture 200 pcs vs colisage 140 pcs"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_13",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_14",
@@ -150,7 +171,8 @@
           "type": "ecart_valeur",
           "detail": "facture 5680.0 USD vs DDM 3124.0 USD"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_15",
@@ -161,7 +183,8 @@
           "type": "erreur_arithmetique",
           "detail": "50 x 10450.0 != 418000.0 sur la facture"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_16",
@@ -172,13 +195,15 @@
           "type": "ecart_poids",
           "detail": "colisage 17500.0 kg vs DDM 10850.0 kg"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_17",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_18",
@@ -189,7 +214,8 @@
           "type": "ecart_poids",
           "detail": "colisage 220000.0 kg vs DDM 156200.0 kg"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_19",
@@ -204,13 +230,15 @@
           "type": "ecart_poids",
           "detail": "colisage 1120.0 kg vs DDM 795.2 kg"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_20",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     }
   ]
 }

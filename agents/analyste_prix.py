@@ -4,6 +4,7 @@ Un prix bas n'est pas une preuve : c'est un motif de doute qui ouvre la
 procedure de la Decision 6.1 (l'importateur justifie, la douane decide).
 """
 import csv
+import re
 import statistics
 from pathlib import Path
 
@@ -16,6 +17,10 @@ SEUIL_SOUS_EVALUATION = -30.0   # en %, en dessous on ouvre un doute
 GRAVITE_MAX = 90                # un prix bas reste une hypothese, jamais 100
 SEUIL_SIMILAIRES = -50.0        # reference agregee sur d'autres origines : plus bruitee
 FACTEUR_SIMILAIRES = 0.7
+FACTEUR_JUSTIFIE = 0.4          # remise documentee qui couvre l'ecart
+FACTEUR_INCOHERENT = 1.2        # remise documentee qui NE couvre PAS l'ecart : pretexte possible
+TERMES_REMISE = [r"discount", r"promotion(?:al)?", r"credit note", r"clearance", r"rabais",
+                 r"soldes?", r"end of series", r"remise"]
 BONUS_RECLASSEMENT = 20         # faux classement + prix bas : deux signaux convergents
 
 PREFIXE_SIMILAIRES = ("Aucune marchandise identique en base. Référence établie sur "
@@ -81,6 +86,54 @@ def _chercher_reference(bareme, sh, pays):
                 "fiabilite": "moyenne", "type": "similaires", "origines": sorted(similaires),
                 "prefixe": PREFIXE_SIMILAIRES + " "}
     return None
+
+
+def _rapprocher_justificatif(r, texte, prix_kg):
+    """Rapproche la remise annoncee de l'ecart constate. L'alerte n'est jamais
+    effacee : on dit seulement si la remise suffit a expliquer le prix.
+    Critere : le prix AVANT remise doit revenir dans la bande normale (au-dessus
+    du seuil de la reference utilisee). Sinon la remise est un pretexte possible."""
+    bas = texte.lower()
+    if not any(re.search(rf"\b{t}\b", bas) for t in TERMES_REMISE):
+        r.non_lus.append("justificatif.pdf : aucun terme de remise reconnu")
+        return
+    lignes = [" ".join(l.split()) for l in texte.splitlines() if l.strip()]
+    type_doc = lignes[0] if lignes else "document joint"
+    m = re.search(r"(\d+(?:\.\d+)?)\s*%", texte)
+    remise = float(m.group(1)) if m and 0 < float(m.group(1)) < 100 else None
+
+    for a in r.alertes:
+        if a.type not in ("sous_evaluation", "sous_evaluation_via_reclassement"):
+            continue
+        ref = a.preuve.get("prix_kg_reference") or a.preuve.get("reference_code_suggere")
+        ecart, seuil = a.preuve["ecart_pct"], a.preuve["seuil_pct"]
+        a.preuve.update({"justificatif": type_doc,
+                         "remise_annoncee": f"{remise:g}%" if remise is not None else None,
+                         "ecart_constate": f"{ecart}%"})
+        entete = (f"Ecart de prix de {ecart:.0f} %. Un document justificatif est joint "
+                  f"({type_doc}). L'inspecteur doit verifier la concordance entre la remise "
+                  f"annoncee et le reglement effectif.")
+        if remise is None:
+            # Remise non chiffree : impossible de verifier qu'elle couvre l'ecart,
+            # donc aucune attenuation.
+            a.preuve["coherent"] = None
+            a.type = "sous_evaluation_justifiee"
+            a.message = f"{entete} La remise n'est pas chiffree : concordance invérifiable. {MENTION_OMC}"
+            continue
+        avant_remise = prix_kg / (1 - remise / 100)
+        residuel = 100 * (avant_remise - ref) / ref
+        coherent = residuel > seuil
+        a.preuve.update({"coherent": coherent, "ecart_apres_remise_pct": round(residuel, 1)})
+        if coherent:
+            a.type = "sous_evaluation_justifiee"
+            a.gravite = round(a.gravite * FACTEUR_JUSTIFIE)
+            a.message = f"{entete} {MENTION_OMC}"
+        else:
+            a.type = "sous_evaluation_justificatif_incoherent"
+            a.gravite = min(GRAVITE_MAX, round(a.gravite * FACTEUR_INCOHERENT))
+            a.message = (f"La remise annoncee ({remise:g}%) n'explique pas l'ecart constate "
+                         f"({ecart:.0f}%) : meme avant remise, le prix resterait a "
+                         f"{residuel:+.0f} % de la reference. {entete} {MENTION_OMC}")
 
 
 def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
@@ -172,6 +225,11 @@ def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
                     source=(f"inspecteur documentaire : designation facture -> SH {suggere} ; "
                             f"bareme {Path(bareme_csv).name} lignes {suggere}/{','.join(ref2['origines'])}"),
                 )
+
+    # ---------- 3. Justificatif de remise joint au dossier ----------
+    texte = (donnees_agent1 or {}).get("justificatif")
+    if texte:
+        _rapprocher_justificatif(r, texte, prix_kg)
 
     # Pose apres ajouter(), qui force 'ALERTE' : l'inspecteur doit savoir que la
     # reference du code declare est absente ou approchee. Une alerte de

@@ -125,15 +125,15 @@
         "designation_vs_sh"
       ],
       "obtenues": [
-        "sous_evaluation",
-        "designation_vs_sh"
+        "designation_vs_sh",
+        "sous_evaluation"
       ],
       "manquees": [],
       "en_trop": [],
       "alertes_profil": [
         "changement_secteur"
       ],
-      "score": 65,
+      "score": 61,
       "recommandation": "CONTROLE_DOCUMENTAIRE",
       "analyse_partielle": true
     },

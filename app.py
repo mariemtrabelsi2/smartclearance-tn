@@ -62,7 +62,8 @@ def analyser_depot(fichiers):
     dossier temporaire : la chaine d'analyse reste strictement la meme."""
     tmp = Path(tempfile.mkdtemp(prefix="smartclearance_"))
     for nom, f in fichiers.items():
-        (tmp / nom).write_bytes(f.getvalue())
+        if f is not None:
+            (tmp / nom).write_bytes(f.getvalue())
     return analyser_dossier(tmp)
 
 
@@ -83,7 +84,10 @@ if mode == "Dossier de test":
 else:
     depots = {nom: st.file_uploader(nom, type=[nom.split(".")[-1]], key=f"up_{nom}")
               for nom in PIECES}
-    manquants = [n for n, f in depots.items() if f is None]
+    # Facultatif : une remise documentee que l'Agent 2 rapproche de l'ecart de prix.
+    depots["justificatif.pdf"] = st.file_uploader("justificatif.pdf (facultatif)", type=["pdf"],
+                                                  key="up_justificatif.pdf")
+    manquants = [n for n in PIECES if depots[n] is None]
     if st.button("Analyser", type="primary", disabled=bool(manquants)):
         st.session_state["synthese"] = analyser_depot(depots)
         st.session_state["dossier"] = "depot_" + datetime.now().strftime("%H%M%S")

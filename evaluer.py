@@ -15,7 +15,9 @@ RACINE = Path(__file__).resolve().parent
 
 # La verite terrain ne connait qu'un type de sous-evaluation ; l'alerte via
 # reclassement en est une forme (meme anomalie, detectee par un autre chemin).
-EQUIVALENCES = {"sous_evaluation_via_reclassement": "sous_evaluation"}
+EQUIVALENCES = {"sous_evaluation_via_reclassement": "sous_evaluation",
+                "sous_evaluation_justifiee": "sous_evaluation",
+                "sous_evaluation_justificatif_incoherent": "sous_evaluation"}
 
 
 def evaluer(dossiers_dir=RACINE / "dossiers"):

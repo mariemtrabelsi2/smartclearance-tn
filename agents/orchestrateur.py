@@ -37,6 +37,10 @@ PIECES = {
     "changement_secteur": ["justification de la nouvelle activite (registre de commerce, agrement)"],
     "derive_prix": ["factures d'achats anterieurs", "justification de l'evolution des prix"],
     "fournisseur_partage": ["contrat commercial", "preuve de paiement (avis SWIFT, releve bancaire)"],
+    "sous_evaluation_justifiee": ["preuve de paiement (avis SWIFT, releve bancaire)",
+                                  "original signe du document de remise"],
+    "sous_evaluation_justificatif_incoherent": ["preuve de paiement (avis SWIFT, releve bancaire)",
+                                                "contrat commercial", "factures d'achats anterieurs"],
     "sous_evaluation": ["contrat commercial", "preuve de paiement (avis SWIFT, releve bancaire)",
                         "justification de remise", "factures d'achats anterieurs"],
 }
@@ -115,9 +119,11 @@ def _convergence(alertes):
     """Deux agents qui ne se consultent pas sur le fond (l'un lit les documents,
     l'autre les prix) aboutissent a la meme operation : c'est plus fort
     que deux alertes isolees, et l'inspecteur doit le voir d'emblee."""
-    types = {a.type for a in alertes}
-    if {"designation_vs_sh", "sous_evaluation_via_reclassement"} <= types:
-        a = next(a for a in alertes if a.type == "sous_evaluation_via_reclassement")
+    # Reperee par sa preuve et non par son type : un justificatif joint peut
+    # renommer l'alerte de reclassement sans effacer la convergence.
+    reclass = [a for a in alertes if "code_suggere" in a.preuve]
+    if reclass and any(a.type == "designation_vs_sh" for a in alertes):
+        a = reclass[0]
         p = a.preuve
         return (f"Convergence : deux agents indépendants pointent la même opération — "
                 f"l'inspecteur documentaire relève que la marchandise décrite relève du "

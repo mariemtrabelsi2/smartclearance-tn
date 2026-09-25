@@ -4,6 +4,7 @@ Generateur de dossiers d'importation FICTIFS pour tester le moteur d'anomalies.
 
     python3 generer.py            # 20 dossiers dans ./sortie/
     python3 generer.py 40         # 40 dossiers
+    python3 generer.py 20 99 out  # 20 dossiers, graine 99, dans ./out/
 
 Produit, par dossier :
     dossier_NN/facture.pdf        (scan-like, a lire par OCR/LLM)
@@ -126,6 +127,33 @@ def colisage_pdf(path, d):
     y = ligne(c, y, "Quantity", f"{d['qte_colisage']} pcs")
     y = ligne(c, y, "Net weight", f"{d['poids_colisage']:,.1f} kg")
     y = ligne(c, y, "Gross weight", f"{d['poids_colisage']*1.06:,.1f} kg")
+    c.setFont("Helvetica-Oblique", 7)
+    c.drawString(20*mm, 15*mm, "Document fictif genere pour test - aucune valeur commerciale")
+    c.save()
+
+
+# Justificatifs joints a certaines sous-evaluations. Cycle deterministe (pas de
+# tirage) pour ne pas decaler la suite aleatoire : les autres pieces restent
+# identiques a celles generees avant l'ajout des justificatifs.
+JUSTIFICATIFS = [
+    {"titre": "COMMERCIAL AGREEMENT", "objet": "Volume discount 60% - valid until 2026-12-31",
+     "detail": ("Discount rate", "60%"), "remise": 60},
+    {"titre": "CREDIT NOTE", "objet": "End of series clearance",
+     "detail": ("Credit granted", "20% of invoice value"), "remise": 20},
+    {"titre": "PROMOTIONAL OFFER", "objet": "Black Friday campaign",
+     "detail": ("Promotional discount", "30%"), "remise": 30},
+]
+
+
+def justificatif_pdf(path, d, j):
+    c = canvas.Canvas(path, pagesize=A4)
+    entete(c, j["titre"], d["ref_facture"])
+    y = 255
+    y = ligne(c, y, "Seller", d["fournisseur"])
+    y = ligne(c, y, "Buyer", d["importateur"])
+    y = ligne(c, y, "Subject", j["objet"], gras=True)
+    y = ligne(c, y, *j["detail"])
+    y = ligne(c, y, "Applies to invoice", d["ref_facture"])
     c.setFont("Helvetica-Oblique", 7)
     c.drawString(20*mm, 15*mm, "Document fictif genere pour test - aucune valeur commerciale")
     c.save()
@@ -254,7 +282,9 @@ def ddm_json(d):
 
 def main():
     n = int(sys.argv[1]) if len(sys.argv) > 1 else 20
-    base = "sortie"
+    if len(sys.argv) > 2:
+        random.seed(int(sys.argv[2]))
+    base = sys.argv[3] if len(sys.argv) > 3 else "sortie"
     os.makedirs(base, exist_ok=True)
 
     # 30% de dossiers PROPRES : indispensables pour mesurer les fausses alertes
@@ -276,7 +306,7 @@ def main():
             plan.append([pool[k]])
     random.shuffle(plan)
 
-    verite, total_anos = [], 0
+    verite, total_anos, n_justif = [], 0, 0
     for i, quelles in enumerate(plan, start=1):
         d = construire(i)
         posees = injecter(d, quelles)
@@ -290,12 +320,20 @@ def main():
         with open(os.path.join(rep, "ddm.json"), "w", encoding="utf-8") as f:
             json.dump(ddm_json(d), f, indent=2, ensure_ascii=False)
 
-        verite.append({
+        entree = {
             "dossier": f"dossier_{i:02d}",
             "propre": len(posees) == 0,
             "nb_anomalies": len(posees),
             "anomalies": posees,
-        })
+            "justification_presente": False,
+        }
+        if any(a["type"] == "sous_evaluation" for a in posees) and n_justif < len(JUSTIFICATIFS):
+            j = JUSTIFICATIFS[n_justif]
+            justificatif_pdf(os.path.join(rep, "justificatif.pdf"), d, j)
+            entree["justification_presente"] = True
+            entree["justificatif"] = {"type": j["titre"], "remise_annoncee_pct": j["remise"]}
+            n_justif += 1
+        verite.append(entree)
 
     with open(os.path.join(base, "verite_terrain.json"), "w", encoding="utf-8") as f:
         json.dump({"nb_dossiers": n, "nb_anomalies_posees": total_anos,

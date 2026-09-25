@@ -100,6 +100,14 @@ def analyser(dossier: str) -> RapportAgent:
     ddm, docs = charger(dossier)
     fac, col, tra = docs["facture"], docs["colisage"], docs["transport"]
     r.donnees = {"ddm": ddm, **docs}
+    # Piece facultative : l'Agent 2 la rapproche de l'ecart de prix. On ne la
+    # juge pas ici, on transmet seulement son texte.
+    justif = _chemin(dossier) / "justificatif.pdf"
+    if justif.exists():
+        try:
+            r.donnees["justificatif"] = pdf_vers_texte(justif)
+        except Exception:
+            r.non_lus.append("justificatif.pdf : illisible")
 
     for type_doc, champs in docs.items():
         r.non_lus += [f"{type_doc}.{c}" for c, v in champs.items() if v is None]

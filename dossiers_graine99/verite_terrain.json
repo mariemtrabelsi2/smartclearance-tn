@@ -15,13 +15,15 @@
           "type": "ecart_valeur",
           "detail": "facture 5225000.0 USD vs DDM 3553000.0 USD"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_02",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_03",
@@ -32,7 +34,8 @@
           "type": "ecart_valeur",
           "detail": "facture 152960.0 USD vs DDM 84128.0 USD"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_04",
@@ -47,7 +50,12 @@
           "type": "designation_vs_sh",
           "detail": "facture dit 'Smartphone 6.5 inch 128GB' mais SH declare 732690"
         }
-      ]
+      ],
+      "justification_presente": true,
+      "justificatif": {
+        "type": "COMMERCIAL AGREEMENT",
+        "remise_annoncee_pct": 60
+      }
     },
     {
       "dossier": "dossier_05",
@@ -62,19 +70,22 @@
           "type": "erreur_arithmetique",
           "detail": "500 x 133.0 != 53200.0 sur la facture"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_06",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_07",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_08",
@@ -85,7 +96,8 @@
           "type": "ecart_valeur",
           "detail": "facture 4200.0 USD vs DDM 2310.0 USD"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_09",
@@ -96,7 +108,8 @@
           "type": "erreur_arithmetique",
           "detail": "50 x 3.7 != 148.0 sur la facture"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_10",
@@ -107,7 +120,8 @@
           "type": "ecart_quantite",
           "detail": "facture 200 pcs vs colisage 280 pcs"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_11",
@@ -118,7 +132,8 @@
           "type": "ecart_poids",
           "detail": "colisage 7500.0 kg vs DDM 5325.0 kg"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_12",
@@ -133,7 +148,8 @@
           "type": "designation_vs_sh",
           "detail": "facture dit 'Smartphone 6.5 inch 128GB' mais SH declare 732690"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_13",
@@ -144,7 +160,8 @@
           "type": "ecart_origine",
           "detail": "transport TR vs DDM CN"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_14",
@@ -155,13 +172,15 @@
           "type": "ecart_origine",
           "detail": "transport TR vs DDM EG"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_15",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_16",
@@ -172,13 +191,15 @@
           "type": "designation_vs_sh",
           "detail": "facture dit 'Cotton T-shirt' mais SH declare 732690"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_17",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_18",
@@ -189,13 +210,15 @@
           "type": "poids_invraisemblable",
           "detail": "44.000 kg par unite pour 'Passenger car 1200cc'"
         }
-      ]
+      ],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_19",
       "propre": true,
       "nb_anomalies": 0,
-      "anomalies": []
+      "anomalies": [],
+      "justification_presente": false
     },
     {
       "dossier": "dossier_20",
@@ -210,7 +233,8 @@
           "type": "designation_vs_sh",
           "detail": "facture dit 'Wooden office desk' mais SH declare 732690"
         }
-      ]
+      ],
+      "justification_presente": false
     }
   ]
 }
