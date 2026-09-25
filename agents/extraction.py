@@ -15,6 +15,18 @@ CHAMPS = {
                  "poids_net", "poids_brut"],
     "transport": ["reference", "navire", "port_chargement", "pays_origine",
                   "conteneur", "nb_colis", "poids_brut", "expediteur"],
+    "certificat": ["reference", "autorite_emettrice", "pays_autorite", "exportateur",
+                   "destinataire", "pays_origine", "designation", "quantite", "poids_net",
+                   "date_emission"],
+}
+
+# Nom de pays (tel qu'ecrit dans le libelle de l'autorite emettrice) -> ISO2.
+# Un nom absent de cette table donne None : on ne devine pas un pays.
+PAYS_ISO2 = {
+    "china": "CN", "people's republic of china": "CN", "turkiye": "TR", "turkey": "TR",
+    "türkiye": "TR", "italy": "IT", "italia": "IT", "egypt": "EG", "spain": "ES",
+    "espana": "ES", "españa": "ES", "france": "FR", "germany": "DE", "india": "IN",
+    "tunisia": "TN", "morocco": "MA", "algeria": "DZ", "united arab emirates": "AE",
 }
 
 # Libelles anglais des documents commerciaux -> nos champs.
@@ -42,6 +54,16 @@ LIBELLES = {
         "nb_colis": [r"packages", r"number of packages"],
         "poids_brut": [r"gross weight"],
         "expediteur": [r"shipper"],
+    },
+    "certificat": {
+        "autorite_emettrice": [r"issuing authority"],
+        "exportateur": [r"exporter"],
+        "destinataire": [r"consignee"],
+        "pays_origine": [r"country of origin"],
+        "designation": [r"goods", r"description of goods"],
+        "quantite": [r"quantity"],
+        "poids_net": [r"net weight"],
+        "date_emission": [r"date of issue"],
     },
 }
 
@@ -158,6 +180,12 @@ def extraire_champs(texte: str, type_doc: str) -> dict:
         if brut["incoterm"]:
             # 'CIF Rades' -> 'CIF' : le lieu n'est pas compare a la DDM.
             brut["incoterm"] = brut["incoterm"].split()[0].upper()
+
+    if type_doc == "certificat" and brut["autorite_emettrice"]:
+        # 'Chamber of Commerce of Shanghai, China' -> 'China' -> CN
+        morceaux = brut["autorite_emettrice"].rsplit(",", 1)
+        if len(morceaux) == 2:
+            brut["pays_autorite"] = PAYS_ISO2.get(" ".join(morceaux[1].split()).lower())
 
     return {c: _typer(c, v) for c, v in brut.items()}
 
