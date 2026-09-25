@@ -1,10 +1,10 @@
 {
   "nb_dossiers": 20,
   "anomalies_posees": 22,
-  "anomalies_trouvees": 19,
-  "rappel": 0.864,
-  "alertes_emises": 19,
-  "alertes_justes": 19,
+  "anomalies_trouvees": 22,
+  "rappel": 1.0,
+  "alertes_emises": 22,
+  "alertes_justes": 22,
   "precision": 1.0,
   "propres": {
     "nb": 6,
@@ -23,9 +23,9 @@
   "par_type": {
     "autorite_emettrice_incoherente": {
       "posees": 1,
-      "trouvees": 0,
-      "emises": 0,
-      "justes": 0
+      "trouvees": 1,
+      "emises": 1,
+      "justes": 1
     },
     "designation_vs_sh": {
       "posees": 1,
@@ -35,9 +35,9 @@
     },
     "ecart_exportateur": {
       "posees": 1,
-      "trouvees": 0,
-      "emises": 0,
-      "justes": 0
+      "trouvees": 1,
+      "emises": 1,
+      "justes": 1
     },
     "ecart_origine": {
       "posees": 1,
@@ -47,9 +47,9 @@
     },
     "ecart_origine_certificat": {
       "posees": 1,
-      "trouvees": 0,
-      "emises": 0,
-      "justes": 0
+      "trouvees": 1,
+      "emises": 1,
+      "justes": 1
     },
     "ecart_poids": {
       "posees": 5,
@@ -97,15 +97,14 @@
         "ecart_exportateur"
       ],
       "obtenues": [
+        "ecart_exportateur",
         "erreur_arithmetique"
       ],
-      "manquees": [
-        "ecart_exportateur"
-      ],
+      "manquees": [],
       "en_trop": [],
       "alertes_profil": [],
-      "score": 60,
-      "recommandation": "CONTROLE_DOCUMENTAIRE",
+      "score": 86,
+      "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": true
     },
     {
@@ -117,17 +116,16 @@
         "autorite_emettrice_incoherente"
       ],
       "obtenues": [
+        "autorite_emettrice_incoherente",
         "sous_evaluation",
         "designation_vs_sh"
       ],
-      "manquees": [
-        "autorite_emettrice_incoherente"
-      ],
+      "manquees": [],
       "en_trop": [],
       "alertes_profil": [
         "changement_secteur"
       ],
-      "score": 74,
+      "score": 95,
       "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": true
     },
@@ -305,14 +303,13 @@
         "ecart_origine_certificat"
       ],
       "obtenues": [
-        "ecart_valeur"
-      ],
-      "manquees": [
+        "ecart_valeur",
         "ecart_origine_certificat"
       ],
+      "manquees": [],
       "en_trop": [],
       "alertes_profil": [],
-      "score": 85,
+      "score": 98,
       "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": true
     },
