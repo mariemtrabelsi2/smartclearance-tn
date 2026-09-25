@@ -80,31 +80,152 @@ def pdf_vers_texte(chemin) -> str:
     return "\n".join(l.rstrip() for l in "\n".join(pages).splitlines())
 
 
-def nombre(brut):
-    """'1,650,000.0 kg' -> 1650000.0. La virgule est un separateur de milliers
-    dans ces documents ; on refuse tout ce qui n'a pas cette forme plutot que
-    de risquer de lire 1,5 comme 15."""
-    if brut is None:
-        return None
-    m = re.search(r"-?[\d][\d,.]*", str(brut))
+# ---------------------------------------------------------------------------
+# Normalisation. Principe : on ne corrige JAMAIS une valeur declaree. On garde
+# le brut, on calcule a cote une valeur normalisee qui sert a comparer, et on
+# dit quelle normalisation a ete appliquee.
+# ---------------------------------------------------------------------------
+ESPACES_SPECIAUX = {"\u00a0": " ", "\u202f": " ", "\u2009": " ", "\t": " "}
+CHAMPS_CONTENEUR = {"conteneur"}
+CHAMPS_PAYS = {"pays_origine", "pays_autorite"}
+# Confusions de lecture classiques (OCR, saisie) : lettre a la place d'un chiffre.
+CONFUSIONS = str.maketrans({"O": "0", "o": "0", "l": "1", "I": "1", "S": "5"})
+# Normalisations qui ne changent rien au sens pour ces documents : pas la peine
+# de les montrer a l'inspecteur a chaque dossier.
+ANODINES = {"separateur de milliers (virgule)", "unite retiree"}
+
+
+def _espaces(s):
+    for a, b in ESPACES_SPECIAUX.items():
+        s = s.replace(a, b)
+    return s
+
+
+def _jeton_numerique(s):
+    """Nombre en tete de chaine, groupes separes par espaces compris ('1 250,50 kg')."""
+    m = re.search(r"-?\d(?:[\d.,]|\s(?=\d{3}\b))*", s)
     if not m:
         return None
-    jeton = m.group(0).rstrip(".,")
-    # Le jeton ENTIER doit etre bien forme : '1,5' ne doit pas devenir 1.
-    if not re.fullmatch(r"-?\d{1,3}(?:,\d{3})+(?:\.\d+)?|-?\d+(?:\.\d+)?", jeton):
+    # Le nombre doit etre un mot entier : '1O5O' ou 'l2S' ne donnent pas 1 ou 2.
+    avant = s[:m.start()][-1:]
+    apres = re.match(r"\S*", s[m.end():]).group(0)
+    if (avant and avant.isalnum()) or re.search(r"\d", apres) or re.match(r"[OolIS]", apres):
         return None
-    return float(jeton.replace(",", ""))
+    return m.group(0).rstrip(".,")
 
 
-def _typer(champ, valeur):
-    if valeur is None or valeur == "":
+def normaliser_nombre(brut):
+    """-> (valeur | None, [normalisations appliquees]).
+    Regles explicites, sinon None : on ne devine pas un nombre ambigu."""
+    if brut is None:
+        return None, []
+    s = str(brut)
+    faites = []
+    s2 = _espaces(s).strip()
+    if s2 != s.strip():
+        faites.append("espaces insecables")
+    jeton = _jeton_numerique(s2)
+    if jeton is None:
+        return None, faites
+    if s2 != jeton:
+        faites.append("unite retiree")
+    t = jeton
+    if " " in t:
+        if not re.fullmatch(r"-?\d{1,3}(?: \d{3})+(?:[.,]\d+)?", t):
+            return None, faites
+        t = t.replace(" ", "")
+        faites.append("separateur de milliers (espace)")
+    virgule, point = "," in t, "." in t
+    if virgule and point:
+        dec = "," if t.rfind(",") > t.rfind(".") else "."
+        mil = "." if dec == "," else ","
+        entier, _, frac = t.rpartition(dec)
+        if not re.fullmatch(rf"-?\d{{1,3}}(?:\{mil}\d{{3}})+", entier) or not frac.isdigit():
+            return None, faites
+        t = entier.replace(mil, "") + "." + frac
+        faites.append(f"separateur de milliers ({'virgule' if mil == ',' else 'point'})")
+        if dec == ",":
+            faites.append("virgule decimale")
+    elif virgule:
+        if re.fullmatch(r"-?\d{1,3}(?:,\d{3})+", t):
+            # Convention de ces documents : virgule = milliers ('1,500' = 1500).
+            t = t.replace(",", "")
+            faites.append("separateur de milliers (virgule)")
+        elif re.fullmatch(r"-?\d+,\d{1,2}", t):
+            t = t.replace(",", ".")
+            faites.append("virgule decimale")
+        else:
+            return None, faites
+    elif point and re.fullmatch(r"-?\d{1,3}(?:\.\d{3}){2,}", t):
+        t = t.replace(".", "")
+        faites.append("separateur de milliers (point)")
+    elif point and not re.fullmatch(r"-?\d+\.\d+", t):
+        return None, faites
+    try:
+        return float(t), faites
+    except ValueError:
+        return None, faites
+
+
+def nombre(brut):
+    """Compatibilite : la valeur normalisee seule."""
+    return normaliser_nombre(brut)[0]
+
+
+def lecture_alternative(brut):
+    """Si un champ numerique illisible contient O, l, I ou S au milieu de chiffres,
+    propose la lecture avec les chiffres correspondants. Proposition seulement :
+    l'appelant ne doit JAMAIS la substituer a la valeur lue."""
+    if brut is None or not re.search(r"\d", str(brut)) or not re.search(r"[OolIS]", str(brut)):
         return None
-    if champ in ENTIERS:
-        n = nombre(valeur)
-        return int(n) if n is not None and n == int(n) else None
-    if champ in DECIMAUX:
-        return nombre(valeur)
-    return valeur.strip()
+    jeton = re.search(r"[\dOolIS][\dOolIS.,\s]*", str(brut))
+    if not jeton or not re.search(r"\d", jeton.group(0)):
+        return None
+    alt = jeton.group(0).strip().translate(CONFUSIONS)
+    return alt if normaliser_nombre(alt)[0] is not None else None
+
+
+def cle_nom(s):
+    """Comparaison de noms d'entreprise : casse et espaces ignores (l'affichage
+    garde la forme d'origine)."""
+    return " ".join(_espaces(str(s)).split()).casefold() if s else None
+
+
+def cle_conteneur(s):
+    return re.sub(r"[\s\-]", "", _espaces(str(s))).upper() if s else None
+
+
+def normaliser_champ(champ, brut):
+    """-> {"brut", "normalise", "normalisation_appliquee", "significative", ...}"""
+    d = {"brut": brut, "normalise": None, "normalisation_appliquee": None, "significative": False}
+    if brut is None or str(brut).strip() == "":
+        return d
+    faites = []
+    if champ in ENTIERS or champ in DECIMAUX:
+        v, faites = normaliser_nombre(brut)
+        if v is not None and champ in ENTIERS:
+            v = int(v) if v == int(v) else None
+        d["normalise"] = v
+        if v is None:
+            alt = lecture_alternative(brut)
+            if alt is not None:
+                d["lecture_alternative"] = alt
+    elif champ in CHAMPS_CONTENEUR:
+        d["normalise"] = cle_conteneur(brut)
+        if re.sub(r"\s", "", str(brut)).upper() != d["normalise"] or str(brut).strip() != str(brut).strip().upper():
+            faites.append("conteneur : majuscules, espaces et tirets retires")
+    elif champ in CHAMPS_PAYS:
+        d["normalise"] = _espaces(str(brut)).strip().upper()
+        if d["normalise"] != str(brut):
+            faites.append("code pays en majuscules")
+    else:
+        d["normalise"] = " ".join(_espaces(str(brut)).split())
+        if d["normalise"] != str(brut).strip():
+            faites.append("espaces normalises")
+    if faites:
+        d["normalisation_appliquee"] = ", ".join(faites)
+        d["significative"] = any(f not in ANODINES for f in faites)
+    return d
 
 
 def _lignes(texte):
@@ -159,7 +280,13 @@ def _ligne_article(lignes):
 
 
 def extraire_champs(texte: str, type_doc: str) -> dict:
-    """Extracteur deterministe : marche sans reseau, toujours disponible."""
+    """Extracteur deterministe : marche sans reseau, toujours disponible.
+    Renvoie les valeurs NORMALISEES (celles qui servent a comparer)."""
+    return {c: d["normalise"] for c, d in extraire_champs_detail(texte, type_doc).items()}
+
+
+def extraire_champs_detail(texte: str, type_doc: str) -> dict:
+    """Pour chaque champ : brut, normalise et normalisation appliquee."""
     if type_doc not in CHAMPS:
         raise ValueError(f"type_doc inconnu : {type_doc}")
     lignes = _lignes(texte)
@@ -187,7 +314,7 @@ def extraire_champs(texte: str, type_doc: str) -> dict:
         if len(morceaux) == 2:
             brut["pays_autorite"] = PAYS_ISO2.get(" ".join(morceaux[1].split()).lower())
 
-    return {c: _typer(c, v) for c, v in brut.items()}
+    return {c: normaliser_champ(c, v) for c, v in brut.items()}
 
 
 def champs_manquants(champs: dict) -> list:

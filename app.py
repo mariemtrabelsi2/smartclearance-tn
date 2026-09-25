@@ -171,3 +171,10 @@ with st.container(border=True):
         st.markdown("\n".join(f"- `{n}`" for n in s["champs_non_lus"]))
     else:
         st.caption("Tous les champs attendus ont été lus.")
+
+if s.get("normalisations"):
+    # La declaration n'est jamais reecrite : on montre ce qui a ete lu et la
+    # forme utilisee pour comparer, pour que l'inspecteur puisse contester.
+    with st.expander(f"Normalisations appliquées pour comparer ({len(s['normalisations'])})"):
+        st.caption("Valeurs brutes conservées telles quelles ; seule la forme normalisée sert aux comparaisons.")
+        st.dataframe(pd.DataFrame(s["normalisations"]).astype(str), hide_index=True, width="stretch")

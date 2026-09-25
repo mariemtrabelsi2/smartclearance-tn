@@ -196,6 +196,7 @@ def analyser_dossier(dossier, bareme_csv=analyste_prix.BAREME_DEFAUT,
     r3 = profileur.analyser(r1.donnees["ddm"], historique_csv, r1.donnees["facture"].get("date"))
     synthese = synthetiser([r1, r2, r3])
     synthese["numero_ddm"] = r1.donnees["ddm"].get("numero_ddm")
+    synthese["normalisations"] = r1.donnees.get("normalisations", [])
     v = r1.donnees["ddm"].get("valeur_cif_usd")
     synthese["valeur_declaree"] = {"usd": v, "tnd": round(vers_tnd(v)) if v else None,
                                    "libelle": f"Valeur declaree : {fmt_tnd(v)}",

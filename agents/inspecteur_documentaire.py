@@ -9,7 +9,7 @@ import unicodedata
 from pathlib import Path
 
 from agents.base import RapportAgent, NIVEAU_CONTRADICTION, NIVEAU_ECART
-from agents.extraction import pdf_vers_texte, extraire_champs, CHAMPS
+from agents.extraction import pdf_vers_texte, extraire_champs_detail, CHAMPS, cle_nom, cle_conteneur
 from agents.devises import conversion, fmt_tnd, nombre_fr
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -87,28 +87,36 @@ def charger(dossier):
     tous ses champs deviennent None et seront declares non lus."""
     p = _chemin(dossier)
     ddm = json.loads((p / "ddm.json").read_text(encoding="utf-8"))
-    docs = {}
-    for type_doc in ("facture", "colisage", "transport"):
-        try:
-            docs[type_doc] = extraire_champs(pdf_vers_texte(p / f"{type_doc}.pdf"), type_doc)
-        except Exception:
-            docs[type_doc] = {c: None for c in CHAMPS[type_doc]}
+    fichiers = {"facture": "facture.pdf", "colisage": "colisage.pdf", "transport": "transport.pdf"}
     # Le certificat d'origine n'est exige que pour un regime preferentiel : absent,
     # il n'entre pas dans docs, donc ni alerte ni statut degrade.
     if (p / "certificat_origine.pdf").exists():
+        fichiers["certificat"] = "certificat_origine.pdf"
+    docs, details = {}, {}
+    for type_doc, nom in fichiers.items():
         try:
-            docs["certificat"] = extraire_champs(pdf_vers_texte(p / "certificat_origine.pdf"), "certificat")
+            details[type_doc] = extraire_champs_detail(pdf_vers_texte(p / nom), type_doc)
         except Exception:
-            docs["certificat"] = {c: None for c in CHAMPS["certificat"]}
-    return ddm, docs
+            details[type_doc] = {c: {"brut": None, "normalise": None} for c in CHAMPS[type_doc]}
+        # Les controles comparent les valeurs normalisees ; le brut reste
+        # disponible, jamais reecrit.
+        docs[type_doc] = {c: d["normalise"] for c, d in details[type_doc].items()}
+    return ddm, docs, details
 
 
 def analyser(dossier: str) -> RapportAgent:
     r = RapportAgent(agent="Inspecteur documentaire")
-    ddm, docs = charger(dossier)
+    ddm, docs, details = charger(dossier)
     fac, col, tra = docs["facture"], docs["colisage"], docs["transport"]
     cer = docs.get("certificat")
     r.donnees = {"ddm": ddm, **docs}
+    # Normalisations qui ont change quelque chose de significatif : montrees a
+    # l'inspecteur pour qu'il sache que la comparaison ne porte pas sur le brut.
+    r.donnees["normalisations"] = [
+        {"document": t, "champ": c, "brut": d["brut"], "normalise": d["normalise"],
+         "normalisation_appliquee": d.get("normalisation_appliquee")}
+        for t, champs in details.items() for c, d in champs.items() if d.get("significative")]
+    r.donnees["details_extraction"] = details
     if cer is None:
         r.non_lus.append("certificat_origine_absent")
     # Piece facultative : l'Agent 2 la rapproche de l'ecart de prix. On ne la
@@ -231,11 +239,9 @@ def analyser(dossier: str) -> RapportAgent:
             source="certificat : lignes 'Issuing authority' et 'Country of origin'",
         )
 
-    def norm(s):
-        return " ".join(str(s).upper().split()) if s else None
-
+    # Casse et espaces ignores pour comparer ; le message garde la forme d'origine.
     if cer is not None and cer["exportateur"] and fac["vendeur"] \
-            and norm(cer["exportateur"]) != norm(fac["vendeur"]):
+            and cle_nom(cer["exportateur"]) != cle_nom(fac["vendeur"]):
         r.ajouter(
             type="ecart_exportateur", niveau=NIVEAU_CONTRADICTION, gravite=65,
             message=(f"L'exportateur du certificat ({cer['exportateur']}) n'est pas le vendeur "
@@ -256,7 +262,7 @@ def analyser(dossier: str) -> RapportAgent:
         )
 
     c_col, c_tra = col["conteneur"], tra["conteneur"]
-    if c_col and c_tra and c_col.replace(" ", "").upper() != c_tra.replace(" ", "").upper():
+    if c_col and c_tra and cle_conteneur(c_col) != cle_conteneur(c_tra):
         r.ajouter(
             type="ecart_conteneur", niveau=NIVEAU_CONTRADICTION, gravite=65,
             message=f"Conteneur {c_col} sur le colisage, {c_tra} sur le connaissement.",
