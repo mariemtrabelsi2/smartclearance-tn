@@ -12,6 +12,10 @@ from agents.orchestrateur import analyser_dossier
 
 RACINE = Path(__file__).resolve().parent
 
+# La verite terrain ne connait qu'un type de sous-evaluation ; l'alerte via
+# reclassement en est une forme (meme anomalie, detectee par un autre chemin).
+EQUIVALENCES = {"sous_evaluation_via_reclassement": "sous_evaluation"}
+
 
 def evaluer(dossiers_dir=RACINE / "dossiers"):
     verite = json.loads((Path(dossiers_dir) / "verite_terrain.json").read_text(encoding="utf-8"))
@@ -23,7 +27,8 @@ def evaluer(dossiers_dir=RACINE / "dossiers"):
         s = analyser_dossier(Path(dossiers_dir) / d["dossier"])
         attendus = [a["type"] for a in d["anomalies"]]
         # Les alertes a gravite 0 sont informatives : elles ne comptent pas comme emises.
-        obtenus = [a["type"] for a in s["alertes"] if a["gravite"] > 0]
+        obtenus = [EQUIVALENCES.get(a["type"], a["type"])
+                   for a in s["alertes"] if a["gravite"] > 0]
 
         restants = list(attendus)
         for t in obtenus:

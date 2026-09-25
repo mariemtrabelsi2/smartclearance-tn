@@ -13,22 +13,23 @@ RACINE = Path(__file__).resolve().parent.parent
 
 # Table de repli pour les produits du jeu de test : mots-cles de la designation
 # commerciale -> positions SH admises (4 chiffres ; l'huile d'olive vierge est en
-# 1509, les autres huiles d'olive en 1510) et poids unitaire plausible (kg).
+# 1509, les autres huiles d'olive en 1510). sh6 = code a 6 chiffres propose en cas de
+# faux classement : c'est la cle du bareme de prix, donc il reprend ses codes. et poids unitaire plausible (kg).
 # Les bornes sont volontairement larges : on ne veut signaler que l'absurde
 # (un bureau de 1,4 kg), pas un modele un peu plus leger que la moyenne.
 PRODUITS = [
     {"mots": ["passenger car", "voiture"], "libelle": "voiture de tourisme",
-     "sh4": ["8703"], "poids_min": 600, "poids_max": 3500},
+     "sh4": ["8703"], "sh6": "870321", "poids_min": 600, "poids_max": 3500},
     {"mots": ["olive oil", "huile d'olive"], "libelle": "huile d'olive en bidon de 5 L",
-     "sh4": ["1509", "1510"], "poids_min": 3.5, "poids_max": 7},
+     "sh4": ["1509", "1510"], "sh6": "151090", "poids_min": 3.5, "poids_max": 7},
     {"mots": ["office desk", "desk", "bureau"], "libelle": "bureau en bois",
-     "sh4": ["9403"], "poids_min": 8, "poids_max": 150},
+     "sh4": ["9403"], "sh6": "940360", "poids_min": 8, "poids_max": 150},
     {"mots": ["smartphone", "mobile phone"], "libelle": "smartphone",
-     "sh4": ["8517"], "poids_min": 0.08, "poids_max": 0.6},
+     "sh4": ["8517"], "sh6": "851712", "poids_min": 0.08, "poids_max": 0.6},
     {"mots": ["led tv", "television", "tv "], "libelle": "televiseur 43 pouces",
-     "sh4": ["8528"], "poids_min": 3, "poids_max": 25},
+     "sh4": ["8528"], "sh6": "852872", "poids_min": 3, "poids_max": 25},
     {"mots": ["t-shirt", "tee-shirt", "tshirt"], "libelle": "t-shirt en coton",
-     "sh4": ["6109"], "poids_min": 0.08, "poids_max": 0.6},
+     "sh4": ["6109"], "sh6": "610910", "poids_min": 0.08, "poids_max": 0.6},
 ]
 
 
@@ -177,6 +178,8 @@ def analyser(dossier: str) -> RapportAgent:
                         "code_sh_declare": code_sh, "designation_DDM": ddm.get("designation")},
                 source="facture : ligne article, colonne DESCRIPTION / DDM : champ code_sh",
             )
+            # Transmis a l'Agent 2 : le prix sera aussi controle sous ce code.
+            r.donnees["code_sh_suggere"] = prod["sh6"]
 
         # Le poids unitaire depend de la quantite retenue. Si les documents se
         # contredisent sur la quantite, on n'alerte que si AUCUNE des quantites

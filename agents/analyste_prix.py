@@ -16,6 +16,7 @@ SEUIL_SOUS_EVALUATION = -30.0   # en %, en dessous on ouvre un doute
 GRAVITE_MAX = 90                # un prix bas reste une hypothese, jamais 100
 SEUIL_SIMILAIRES = -50.0        # reference agregee sur d'autres origines : plus bruitee
 FACTEUR_SIMILAIRES = 0.7
+BONUS_RECLASSEMENT = 20         # faux classement + prix bas : deux signaux convergents
 
 PREFIXE_SIMILAIRES = ("Aucune marchandise identique en base. Référence établie sur "
                       "marchandises similaires (même position SH, origines agrégées) — "
@@ -62,7 +63,31 @@ def lire_bareme(chemin):
     return bareme
 
 
-def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT) -> RapportAgent:
+def _chercher_reference(bareme, sh, pays):
+    """Hierarchie OMC : marchandises identiques (meme SH, meme origine), sinon
+    similaires (meme SH, autres origines), sinon rien. None = pas de reference."""
+    exacte = bareme.get((sh, pays))
+    if exacte:
+        # Marchandises identiques (art. 2) : reference fiable, seuil normal.
+        return {"prix_ref": exacte, "seuil": SEUIL_SOUS_EVALUATION, "facteur": 1.0,
+                "fiabilite": "haute", "type": "identiques", "origines": [pays], "prefixe": ""}
+    similaires = {o: v for (code, o), v in bareme.items() if code == sh and o != pays}
+    if similaires:
+        # Marchandises similaires (art. 3) : meme position, autres origines.
+        # La reference est plus bruitee, donc on exige un ecart plus fort
+        # et on abaisse la gravite, mais on n'efface pas le signal.
+        return {"prix_ref": [p for v in similaires.values() for p in v],
+                "seuil": SEUIL_SIMILAIRES, "facteur": FACTEUR_SIMILAIRES,
+                "fiabilite": "moyenne", "type": "similaires", "origines": sorted(similaires),
+                "prefixe": PREFIXE_SIMILAIRES + " "}
+    return None
+
+
+def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
+             donnees_agent1: dict = None) -> RapportAgent:
+    """donnees_agent1 : ce que l'inspecteur documentaire a etabli. S'il a vu que
+    la designation ne colle pas au code declare, on verifie aussi le prix avec
+    le code de la marchandise reellement decrite."""
     r = RapportAgent(agent="Analyste prix")
     creer_bareme_si_absent(bareme_csv)
     bareme = lire_bareme(bareme_csv)
@@ -79,57 +104,80 @@ def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT) -> RapportAgent
     prix_kg = valeur / poids
     r.donnees = {"prix_kg_declare": round(prix_kg, 2), "code_sh": sh, "pays_origine": pays}
 
-    exacte = bareme.get((sh, pays))
-    similaires = {o: v for (code, o), v in bareme.items() if code == sh and o != pays}
-
-    if not exacte and not similaires:
-        # Aucune reference du tout : l'agent passe la main plutot que d'inventer.
-        # Le coordinateur decidera sur les autres criteres.
+    # ---------- 1. Code declare ----------
+    ref = _chercher_reference(bareme, sh, pays)
+    if ref is None:
+        # Aucune reference : l'agent ne conclut rien sur le code declare,
+        # mais on ne sort plus tout de suite, le code suggere peut encore parler.
         r.non_lus.append(f"reference_{sh}")
         r.donnees["reference"] = "PAS DE REFERENCE"
-        r.statut = "INCOMPLET"
-        return r
-
-    if exacte:
-        # Marchandises identiques (art. 2) : reference fiable, seuil normal.
-        prix_ref, seuil, facteur, fiabilite = exacte, SEUIL_SOUS_EVALUATION, 1.0, "haute"
-        origines = [pays]
-        prefixe = ""
+        statut_declare = "INCOMPLET"
     else:
-        # Marchandises similaires (art. 3) : meme position, autres origines.
-        # La reference est plus bruitee, donc on exige un ecart plus fort
-        # et on abaisse la gravite, mais on n'efface pas le signal.
-        prix_ref = [p for v in similaires.values() for p in v]
-        seuil, facteur, fiabilite = SEUIL_SIMILAIRES, FACTEUR_SIMILAIRES, "moyenne"
-        origines = sorted(similaires)
-        prefixe = PREFIXE_SIMILAIRES + " "
-        r.non_lus.append(f"reference_exacte_{sh}_{pays}")
+        if ref["type"] == "similaires":
+            r.non_lus.append(f"reference_exacte_{sh}_{pays}")
+        mediane = statistics.median(ref["prix_ref"])
+        ecart = 100 * (prix_kg - mediane) / mediane
+        r.donnees.update({"prix_kg_reference": mediane, "ecart_pct": round(ecart, 1),
+                          "fiabilite_reference": ref["fiabilite"],
+                          "origines_reference": ref["origines"],
+                          "type_reference": ref["type"],
+                          "nb_observations": len(ref["prix_ref"])})
+        if ecart <= ref["seuil"]:
+            r.ajouter(
+                type="sous_evaluation", niveau=NIVEAU_ECART,
+                gravite=round(min(GRAVITE_MAX, abs(ecart)) * ref["facteur"]),
+                message=(f"{ref['prefixe']}Prix declare {prix_kg:,.2f} USD/kg contre une reference de "
+                         f"{mediane:,.2f} USD/kg ({ecart:+.0f} %). {MENTION_OMC}"),
+                preuve={"prix_kg_declare": round(prix_kg, 2), "prix_kg_reference": mediane,
+                        "ecart_pct": round(ecart, 1), "seuil_pct": ref["seuil"],
+                        "fiabilite_reference": ref["fiabilite"], "type_reference": ref["type"],
+                        "origines_agregees": ref["origines"],
+                        "nb_observations": len(ref["prix_ref"])},
+                source=f"DDM : valeur_cif_usd / poids_net_kg ; bareme {Path(bareme_csv).name} "
+                       f"lignes {sh}/{','.join(ref['origines'])}",
+            )
+        statut_declare = "REFERENCE_PARTIELLE" if ref["type"] == "similaires" else None
 
-    mediane = statistics.median(prix_ref)
-    ecart = 100 * (prix_kg - mediane) / mediane
-    r.donnees.update({"prix_kg_reference": mediane, "ecart_pct": round(ecart, 1),
-                      "fiabilite_reference": fiabilite, "origines_reference": origines,
-                      "type_reference": "identiques" if exacte else "similaires",
-                      "nb_observations": len(prix_ref)})
+    # ---------- 2. Code suggere par l'Agent 1 ----------
+    # Un faux classement peut servir a echapper au controle de prix : sous le
+    # code declare, la marchandise n'a pas de reference ou une reference basse.
+    suggere = str((donnees_agent1 or {}).get("code_sh_suggere") or "").strip()
+    alerte_reclassement = False
+    if suggere and suggere != sh:
+        ref2 = _chercher_reference(bareme, suggere, pays)
+        r.donnees["code_sh_suggere"] = suggere
+        if ref2 is None:
+            r.non_lus.append(f"reference_{suggere}")
+        else:
+            med2 = statistics.median(ref2["prix_ref"])
+            ecart2 = 100 * (prix_kg - med2) / med2
+            r.donnees.update({"reference_code_suggere": med2, "ecart_pct_code_suggere": round(ecart2, 1)})
+            if ecart2 <= ref2["seuil"]:
+                alerte_reclassement = True
+                r.ajouter(
+                    type="sous_evaluation_via_reclassement", niveau=NIVEAU_ECART,
+                    # Deux anomalies independantes qui se renforcent : on part de
+                    # l'ecart et on le majore, sans depasser le plafond d'une hypothese.
+                    gravite=min(GRAVITE_MAX, round(abs(ecart2)) + BONUS_RECLASSEMENT),
+                    message=("Le code declare ne correspond pas a la designation. Verifie avec "
+                             "le code correspondant a la marchandise reellement decrite, le prix "
+                             f"presente un ecart de {ecart2:.0f} %. Le classement errone peut "
+                             f"masquer une sous-evaluation. {MENTION_OMC}"),
+                    preuve={"code_declare": sh, "code_suggere": suggere,
+                            "prix_declare": round(prix_kg, 2), "reference_code_suggere": med2,
+                            "ecart_pct": round(ecart2),
+                            "seuil_pct": ref2["seuil"], "fiabilite_reference": ref2["fiabilite"],
+                            "type_reference": ref2["type"], "origines_agregees": ref2["origines"],
+                            "nb_observations": len(ref2["prix_ref"])},
+                    source=(f"inspecteur documentaire : designation facture -> SH {suggere} ; "
+                            f"bareme {Path(bareme_csv).name} lignes {suggere}/{','.join(ref2['origines'])}"),
+                )
 
-    if ecart <= seuil:
-        preuve = {"prix_kg_declare": round(prix_kg, 2), "prix_kg_reference": mediane,
-                  "ecart_pct": round(ecart, 1), "seuil_pct": seuil,
-                  "fiabilite_reference": fiabilite,
-                  "type_reference": "identiques" if exacte else "similaires",
-                  "origines_agregees": origines, "nb_observations": len(prix_ref)}
-        r.ajouter(
-            type="sous_evaluation", niveau=NIVEAU_ECART,
-            gravite=round(min(GRAVITE_MAX, abs(ecart)) * facteur),
-            message=(f"{prefixe}Prix declare {prix_kg:,.2f} USD/kg contre une reference de "
-                     f"{mediane:,.2f} USD/kg ({ecart:+.0f} %). {MENTION_OMC}"),
-            preuve=preuve,
-            source=f"DDM : valeur_cif_usd / poids_net_kg ; bareme {Path(bareme_csv).name} "
-                   f"lignes {sh}/{','.join(origines)}",
-        )
-
-    if not exacte:
-        # Pose apres ajouter(), qui force 'ALERTE' : l'inspecteur doit savoir
-        # que la reference n'est pas celle de marchandises identiques.
+    # Pose apres ajouter(), qui force 'ALERTE' : l'inspecteur doit savoir que la
+    # reference du code declare est absente ou approchee. Une alerte de
+    # reclassement l'emporte sur 'INCOMPLET' : l'agent a bien trouve quelque chose.
+    if statut_declare == "INCOMPLET" and not alerte_reclassement:
+        r.statut = "INCOMPLET"
+    elif statut_declare == "REFERENCE_PARTIELLE":
         r.statut = "REFERENCE_PARTIELLE"
     return r

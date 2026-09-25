@@ -1,10 +1,10 @@
 {
   "nb_dossiers": 20,
   "anomalies_posees": 19,
-  "anomalies_trouvees": 18,
-  "rappel": 0.947,
-  "alertes_emises": 18,
-  "alertes_justes": 18,
+  "anomalies_trouvees": 19,
+  "rappel": 1.0,
+  "alertes_emises": 19,
+  "alertes_justes": 19,
   "precision": 1.0,
   "propres": {
     "nb": 6,
@@ -57,9 +57,9 @@
     },
     "sous_evaluation": {
       "posees": 1,
-      "trouvees": 0,
-      "emises": 0,
-      "justes": 0
+      "trouvees": 1,
+      "emises": 1,
+      "justes": 1
     }
   },
   "detail": [
@@ -114,13 +114,12 @@
         "designation_vs_sh"
       ],
       "obtenues": [
+        "sous_evaluation",
         "designation_vs_sh"
       ],
-      "manquees": [
-        "sous_evaluation"
-      ],
+      "manquees": [],
       "en_trop": [],
-      "score": 38,
+      "score": 65,
       "recommandation": "CONTROLE_DOCUMENTAIRE",
       "analyse_partielle": true
     },

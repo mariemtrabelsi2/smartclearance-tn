@@ -25,6 +25,8 @@ PIECES = {
     "ecart_reference": ["facture commerciale originale"],
     "poids_invraisemblable": ["fiche technique du produit", "ticket de pesee"],
     "designation_vs_sh": ["fiche technique du produit", "catalogue fournisseur"],
+    "sous_evaluation_via_reclassement": ["fiche technique du produit", "contrat commercial",
+                                         "preuve de paiement (avis SWIFT, releve bancaire)"],
     "sous_evaluation": ["contrat commercial", "preuve de paiement (avis SWIFT, releve bancaire)",
                         "justification de remise", "factures d'achats anterieurs"],
 }
@@ -86,6 +88,22 @@ def reference_prix(rapports):
     return None
 
 
+def _convergence(alertes):
+    """Deux agents qui ne se consultent pas sur le fond (l'un lit les documents,
+    l'autre les prix) aboutissent a la meme operation : c'est plus fort
+    que deux alertes isolees, et l'inspecteur doit le voir d'emblee."""
+    types = {a.type for a in alertes}
+    if {"designation_vs_sh", "sous_evaluation_via_reclassement"} <= types:
+        a = next(a for a in alertes if a.type == "sous_evaluation_via_reclassement")
+        p = a.preuve
+        return (f"Convergence : deux agents indépendants pointent la même opération — "
+                f"l'inspecteur documentaire relève que la marchandise décrite relève du "
+                f"code {p['code_suggere']} et non du {p['code_declare']} déclaré, et "
+                f"l'analyste prix constate que, sous ce code, le prix déclaré est à "
+                f"{p['ecart_pct']:+d} % de la référence. ")
+    return ""
+
+
 def synthetiser(rapports: list) -> dict:
     alertes = [a for r in rapports for a in r.alertes if a.gravite > 0]
     alertes.sort(key=_poids, reverse=True)
@@ -102,7 +120,7 @@ def synthetiser(rapports: list) -> dict:
         cites = [a.message.split(" Motif de doute")[0] for a in alertes[:2]]
         phrase2 = "Points principaux : " + " ".join(cites)
         phrase3 = "La décision reste à l'inspecteur."
-        explication = f"{phrase1} {phrase2} {phrase3}"
+        explication = f"{phrase1} {_convergence(alertes)}{phrase2} {phrase3}"
     else:
         explication = (f"Score de doute {score}/100 : aucune incohérence relevée entre la "
                        "déclaration et les pièces jointes. La décision reste à l'inspecteur.")
@@ -125,7 +143,9 @@ def synthetiser(rapports: list) -> dict:
 def analyser_dossier(dossier, bareme_csv=analyste_prix.BAREME_DEFAUT) -> dict:
     """Chaine complete : Agent 1 et Agent 2 lisent, l'orchestrateur synthetise."""
     r1 = inspecteur_documentaire.analyser(dossier)
-    r2 = analyste_prix.analyser(r1.donnees["ddm"], bareme_csv)
+    # Premier lien entre agents : l'Agent 2 recoit ce que l'Agent 1 a etabli
+    # (notamment un code SH suggere quand la designation contredit la DDM).
+    r2 = analyste_prix.analyser(r1.donnees["ddm"], bareme_csv, r1.donnees)
     synthese = synthetiser([r1, r2])
     synthese["numero_ddm"] = r1.donnees["ddm"].get("numero_ddm")
     return synthese
