@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from agents.base import RapportAgent, NIVEAU_CONTRADICTION
-from agents import inspecteur_documentaire, analyste_prix, profileur
+from agents import inspecteur_documentaire, analyste_prix, profileur, isolation
 
 # Une contradiction entre documents est un fait ; un ecart de prix ou de
 # poids est une hypothese. D'ou le poids double du niveau 1.
@@ -180,6 +180,9 @@ def analyser_dossier(dossier, bareme_csv=analyste_prix.BAREME_DEFAUT,
     r2 = analyste_prix.analyser(r1.donnees["ddm"], bareme_csv, r1.donnees)
     # Le profileur ne voit que l'historique anterieur a la date de la facture
     # (la DDM de test n'a pas de date propre).
+    # Signal secondaire : ne cree aucune alerte, majore au plus x1.15 une alerte
+    # de prix deja motivee par l'ecart a la reference.
+    isolation.confirmer(r2.alertes, r1.donnees["ddm"], historique_csv)
     r3 = profileur.analyser(r1.donnees["ddm"], historique_csv, r1.donnees["facture"].get("date"))
     synthese = synthetiser([r1, r2, r3])
     synthese["numero_ddm"] = r1.donnees["ddm"].get("numero_ddm")
