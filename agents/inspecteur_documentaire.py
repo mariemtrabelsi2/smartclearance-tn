@@ -19,13 +19,13 @@ RACINE = Path(__file__).resolve().parent.parent
 # (un bureau de 1,4 kg), pas un modele un peu plus leger que la moyenne.
 PRODUITS = [
     {"mots": ["passenger car", "voiture"], "libelle": "voiture de tourisme",
-     "sh4": ["8703"], "sh6": "870321", "poids_min": 600, "poids_max": 3500},
+     "sh4": ["8703"], "sh6": "870322", "poids_min": 600, "poids_max": 3500},
     {"mots": ["olive oil", "huile d'olive"], "libelle": "huile d'olive en bidon de 5 L",
      "sh4": ["1509", "1510"], "sh6": "151090", "poids_min": 3.5, "poids_max": 7},
     {"mots": ["office desk", "desk", "bureau"], "libelle": "bureau en bois",
      "sh4": ["9403"], "sh6": "940360", "poids_min": 8, "poids_max": 150},
     {"mots": ["smartphone", "mobile phone"], "libelle": "smartphone",
-     "sh4": ["8517"], "sh6": "851712", "poids_min": 0.08, "poids_max": 0.6},
+     "sh4": ["8517"], "sh6": "851713", "poids_min": 0.08, "poids_max": 0.6},
     {"mots": ["led tv", "television", "tv "], "libelle": "televiseur 43 pouces",
      "sh4": ["8528"], "sh6": "852872", "poids_min": 3, "poids_max": 25},
     {"mots": ["t-shirt", "tee-shirt", "tshirt"], "libelle": "t-shirt en coton",

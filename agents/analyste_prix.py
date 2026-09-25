@@ -29,8 +29,8 @@ MENTION_OMC = ("Motif de doute au sens de la Decision 6.1 de l'Accord OMC sur "
 # Amorcage : imports tunisiens 2023, UN Comtrade, USD/kg.
 AMORCE = [
     ("852872", "CN", 23.86),
-    ("851712", "CN", 142.50),
-    ("870321", "ES", 9.50),
+    ("851713", "CN", 142.50),
+    ("870322", "ES", 9.50),
     ("151090", "IT", 4.20),
     ("940360", "TR", 3.80),
     ("610910", "TR", 18.50),
