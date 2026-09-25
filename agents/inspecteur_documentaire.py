@@ -92,6 +92,13 @@ def charger(dossier):
             docs[type_doc] = extraire_champs(pdf_vers_texte(p / f"{type_doc}.pdf"), type_doc)
         except Exception:
             docs[type_doc] = {c: None for c in CHAMPS[type_doc]}
+    # Le certificat d'origine n'est exige que pour un regime preferentiel : absent,
+    # il n'entre pas dans docs, donc ni alerte ni statut degrade.
+    if (p / "certificat_origine.pdf").exists():
+        try:
+            docs["certificat"] = extraire_champs(pdf_vers_texte(p / "certificat_origine.pdf"), "certificat")
+        except Exception:
+            docs["certificat"] = {c: None for c in CHAMPS["certificat"]}
     return ddm, docs
 
 
@@ -99,7 +106,10 @@ def analyser(dossier: str) -> RapportAgent:
     r = RapportAgent(agent="Inspecteur documentaire")
     ddm, docs = charger(dossier)
     fac, col, tra = docs["facture"], docs["colisage"], docs["transport"]
+    cer = docs.get("certificat")
     r.donnees = {"ddm": ddm, **docs}
+    if cer is None:
+        r.non_lus.append("certificat_origine_absent")
     # Piece facultative : l'Agent 2 la rapproche de l'ecart de prix. On ne la
     # juge pas ici, on transmet seulement son texte.
     justif = _chemin(dossier) / "justificatif.pdf"
@@ -117,25 +127,41 @@ def analyser(dossier: str) -> RapportAgent:
     # Quantite : une seule alerte qui montre les trois chiffres, pour que
     # l'inspecteur voie d'un coup d'oeil quel document diverge.
     qtes = {"facture": fac["quantite"], "colisage": col["quantite"], "DDM": ddm.get("quantite")}
+    if cer is not None:
+        qtes["certificat"] = cer["quantite"]
     lues = {k: v for k, v in qtes.items() if v is not None}
     if len(set(lues.values())) > 1:
         r.ajouter(
             type="ecart_quantite", niveau=NIVEAU_CONTRADICTION, gravite=80,
-            message=(f"Les quantites ne concordent pas : facture {qtes['facture']}, "
-                     f"colisage {qtes['colisage']}, DDM {qtes['DDM']}."),
+            message="Les quantites ne concordent pas : "
+                    + ", ".join(f"{k} {v}" for k, v in qtes.items()) + ".",
             preuve=qtes,
-            source="facture : ligne article, colonne QTY / colisage : ligne 'Quantity' / DDM : champ quantite",
+            source="facture : ligne article, colonne QTY / colisage : ligne 'Quantity' / DDM : champ quantite"
+                   + (" / certificat : ligne 'Quantity'" if cer is not None else ""),
         )
 
     pn_col, pn_ddm = col["poids_net"], ddm.get("poids_net_kg")
-    if pn_col is not None and pn_ddm is not None and _ecart_relatif(pn_col, pn_ddm) > 0.02:
+    pn_cer = cer["poids_net"] if cer is not None else None
+
+    def ecarte(pn):
+        return pn is not None and pn_ddm is not None and _ecart_relatif(pn, pn_ddm) > 0.02
+
+    if ecarte(pn_col) or ecarte(pn_cer):
+        # Une seule alerte : le colisage fait reference, le certificat vient en
+        # appui (ou seul s'il est le seul a diverger).
+        pn = pn_col if ecarte(pn_col) else pn_cer
+        doc = "du colisage" if ecarte(pn_col) else "du certificat d'origine"
+        preuve = {"colisage_kg": pn_col, "DDM_kg": pn_ddm,
+                  "ecart_pct": round(100 * (pn - pn_ddm) / pn_ddm, 1), "tolerance_pct": 2}
+        if cer is not None:
+            preuve["certificat_kg"] = pn_cer
         r.ajouter(
             type="ecart_poids", niveau=NIVEAU_CONTRADICTION, gravite=75,
-            message=(f"Poids net du colisage ({pn_col:,.1f} kg) different du poids net "
-                     f"declare ({pn_ddm:,.1f} kg), soit {pn_col - pn_ddm:+,.1f} kg."),
-            preuve={"colisage_kg": pn_col, "DDM_kg": pn_ddm,
-                    "ecart_pct": round(100 * (pn_col - pn_ddm) / pn_ddm, 1), "tolerance_pct": 2},
-            source="colisage : ligne 'Net weight' / DDM : champ poids_net_kg",
+            message=(f"Poids net {doc} ({pn:,.1f} kg) different du poids net "
+                     f"declare ({pn_ddm:,.1f} kg), soit {pn - pn_ddm:+,.1f} kg."),
+            preuve=preuve,
+            source="colisage : ligne 'Net weight' / DDM : champ poids_net_kg"
+                   + (" / certificat : ligne 'Net weight'" if cer is not None else ""),
         )
 
     mt, v_ddm = fac["montant_total"], ddm.get("valeur_cif_usd")
@@ -149,13 +175,60 @@ def analyser(dossier: str) -> RapportAgent:
             source="facture : ligne 'TOTAL CIF' / DDM : champ valeur_cif_usd",
         )
 
-    o_tra, o_ddm = tra["pays_origine"], ddm.get("pays_origine")
-    if o_tra and o_ddm and o_tra.strip().upper() != o_ddm.strip().upper():
+    # Origine : trois sources si le certificat est la, deux sinon.
+    def iso(x):
+        return x.strip().upper() if x else None
+
+    o_tra, o_ddm = iso(tra["pays_origine"]), iso(ddm.get("pays_origine"))
+    o_cer = iso(cer["pays_origine"]) if cer is not None else None
+    sources = {"certificat": o_cer, "transport": o_tra, "ddm": o_ddm}
+    lus = [v for v in sources.values() if v]
+    trois_divergent = len(lus) == 3 and len(set(lus)) == 3
+    if o_tra and o_ddm and o_tra != o_ddm:
+        preuve = {"connaissement": o_tra, "DDM": o_ddm}
+        if cer is not None:
+            preuve.update({"certificat": o_cer, "trois_sources_divergentes": trois_divergent})
         r.ajouter(
             type="ecart_origine", niveau=NIVEAU_CONTRADICTION, gravite=70,
             message=f"Le connaissement indique l'origine {o_tra}, la DDM declare {o_ddm}.",
-            preuve={"connaissement": o_tra, "DDM": o_ddm},
+            preuve=preuve,
             source="connaissement : ligne 'Country of origin' / DDM : champ pays_origine",
+        )
+    # Plus grave que l'ecart transport/DDM : le certificat est le document qui
+    # FONDE l'origine, donc le droit au regime tarifaire preferentiel.
+    if o_cer and o_ddm and o_cer != o_ddm:
+        r.ajouter(
+            type="ecart_origine_certificat", niveau=NIVEAU_CONTRADICTION, gravite=85,
+            message=(f"Le certificat d'origine atteste l'origine {o_cer}, la DDM declare {o_ddm}"
+                     + (f", le connaissement indique {o_tra} : les trois sources divergent."
+                        if trois_divergent else ".")
+                     + " Le certificat fonde l'origine et le regime tarifaire preferentiel."),
+            preuve={**sources, "trois_sources_divergentes": trois_divergent},
+            source="certificat : ligne 'Country of origin' / connaissement : ligne 'Country of origin' "
+                   "/ DDM : champ pays_origine",
+        )
+
+    if cer is not None and cer["pays_autorite"] and o_cer and cer["pays_autorite"] != o_cer:
+        r.ajouter(
+            type="autorite_emettrice_incoherente", niveau=NIVEAU_CONTRADICTION, gravite=80,
+            message=("L'autorite qui certifie l'origine n'est pas etablie dans le pays "
+                     "d'origine annonce."),
+            preuve={"origine_certifiee": o_cer, "pays_autorite": cer["pays_autorite"],
+                    "autorite": cer["autorite_emettrice"]},
+            source="certificat : lignes 'Issuing authority' et 'Country of origin'",
+        )
+
+    def norm(s):
+        return " ".join(str(s).upper().split()) if s else None
+
+    if cer is not None and cer["exportateur"] and fac["vendeur"] \
+            and norm(cer["exportateur"]) != norm(fac["vendeur"]):
+        r.ajouter(
+            type="ecart_exportateur", niveau=NIVEAU_CONTRADICTION, gravite=65,
+            message=(f"L'exportateur du certificat ({cer['exportateur']}) n'est pas le vendeur "
+                     f"de la facture ({fac['vendeur']})."),
+            preuve={"facture": fac["vendeur"], "certificat": cer["exportateur"]},
+            source="facture : bloc SELLER / certificat : ligne 'Exporter'",
         )
 
     q, pu = fac["quantite"], fac["prix_unitaire"]
@@ -212,8 +285,26 @@ def analyser(dossier: str) -> RapportAgent:
             source="facture : ligne article, colonne DESCRIPTION",
         )
 
+    code_sh = str(ddm.get("code_sh") or "")
+    des_cer = cer["designation"] if cer is not None else None
+    prod_cer = _produit(des_cer)
+    if cer is not None and des_cer and prod_cer is None:
+        r.non_lus.append(f"produit du certificat non reconnu par la table de reference : '{des_cer}'")
+    # Chaque document est controle : si seul le certificat decrit une marchandise
+    # incompatible avec le code declare, on le signale aussi.
+    if prod_cer and code_sh and not code_sh.startswith(tuple(prod_cer["sh4"])) \
+            and (prod is None or code_sh.startswith(tuple(prod["sh4"]))):
+        r.ajouter(
+            type="designation_vs_sh", niveau=NIVEAU_ECART, gravite=75,
+            message=(f"Le certificat d'origine decrit '{des_cer}' ({prod_cer['libelle']}, position "
+                     f"{' ou '.join(prod_cer['sh4'])}) mais la DDM declare le code SH {code_sh}."),
+            preuve={"designation_certificat": des_cer, "designation_facture": designation,
+                    "positions_admises": prod_cer["sh4"], "code_sh_declare": code_sh},
+            source="certificat : ligne 'Goods' / DDM : champ code_sh",
+        )
+        r.donnees["code_sh_suggere"] = prod_cer["sh6"]
+
     if prod:
-        code_sh = str(ddm.get("code_sh") or "")
         if code_sh and not code_sh.startswith(tuple(prod["sh4"])):
             r.ajouter(
                 type="designation_vs_sh", niveau=NIVEAU_ECART, gravite=75,
@@ -221,7 +312,8 @@ def analyser(dossier: str) -> RapportAgent:
                          f"{' ou '.join(prod['sh4'])}) mais la DDM declare le code SH {code_sh} "
                          f"('{ddm.get('designation', '')}')."),
                 preuve={"designation_facture": designation, "positions_admises": prod["sh4"],
-                        "code_sh_declare": code_sh, "designation_DDM": ddm.get("designation")},
+                        "code_sh_declare": code_sh, "designation_DDM": ddm.get("designation"),
+                        **({"designation_certificat": des_cer} if cer is not None else {})},
                 source="facture : ligne article, colonne DESCRIPTION / DDM : champ code_sh",
             )
             # Transmis a l'Agent 2 : le prix sera aussi controle sous ce code.

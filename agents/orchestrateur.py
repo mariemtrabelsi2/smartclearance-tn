@@ -32,6 +32,10 @@ PIECES = {
     "designation_vague": ["fiche technique du produit", "designation detaillee (marque, modele, reference)"],
     "sous_evaluation_via_reclassement": ["fiche technique du produit", "contrat commercial",
                                          "preuve de paiement (avis SWIFT, releve bancaire)"],
+    "ecart_origine_certificat": ["certificat d'origine original", "preuve d'origine du fabricant"],
+    "autorite_emettrice_incoherente": ["certificat d'origine original",
+                                       "verification aupres de l'autorite emettrice"],
+    "ecart_exportateur": ["contrat commercial", "justification du circuit commercial (triangulation)"],
     "anciennete_importateur": ["extrait du registre de commerce"],
     "origine_juridiction_surveillee": ["certificat d'origine", "justificatif du circuit de paiement"],
     "fournisseur_inconnu": ["contrat commercial", "coordonnees et registre du fournisseur"],
@@ -90,11 +94,16 @@ def _est_reference_prix(n):
     return n.startswith("reference_")
 
 
+# Informations qui ne rendent pas l'analyse partielle : un certificat d'origine
+# absent n'est pas une anomalie (il n'est exige que pour un regime preferentiel).
+NON_LUS_INFORMATIFS = {"certificat_origine_absent"}
+
+
 def _prefixe_partiel(non_lus):
     """Seuls les champs de documents non lus ouvrent l'explication : une
     reference de prix approchee est signalee a part (badge), sinon ce message
     ouvrirait presque tous les dossiers et masquerait l'essentiel."""
-    autres = [n for n in non_lus if not _est_reference_prix(n)]
+    autres = [n for n in non_lus if not _est_reference_prix(n) and n not in NON_LUS_INFORMATIFS]
     if not autres:
         return ""
     return "Analyse partielle : éléments non lus : " + ", ".join(autres) + ". "

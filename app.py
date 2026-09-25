@@ -87,6 +87,9 @@ else:
     # Facultatif : une remise documentee que l'Agent 2 rapproche de l'ecart de prix.
     depots["justificatif.pdf"] = st.file_uploader("justificatif.pdf (facultatif)", type=["pdf"],
                                                   key="up_justificatif.pdf")
+    # Facultatif : exige seulement pour un regime preferentiel, son absence n'est pas une anomalie.
+    depots["certificat_origine.pdf"] = st.file_uploader("certificat_origine.pdf (facultatif)",
+                                                        type=["pdf"], key="up_certificat_origine.pdf")
     manquants = [n for n in PIECES if depots[n] is None]
     if st.button("Analyser", type="primary", disabled=bool(manquants)):
         st.session_state["synthese"] = analyser_depot(depots)
