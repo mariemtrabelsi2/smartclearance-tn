@@ -21,7 +21,16 @@ FACTEUR_JUSTIFIE = 0.4          # remise documentee qui couvre l'ecart
 FACTEUR_INCOHERENT = 1.2        # remise documentee qui NE couvre PAS l'ecart : pretexte possible
 TERMES_REMISE = [r"discount", r"promotion(?:al)?", r"credit note", r"clearance", r"rabais",
                  r"soldes?", r"end of series", r"remise"]
-BONUS_RECLASSEMENT = 20         # faux classement + prix bas : deux signaux convergents
+BONUS_RECLASSEMENT = 20
+
+# Le bareme est en valeur CIF (import). Un prix FOB/EXW n'inclut ni fret ni
+# assurance : le comparer tel quel creerait un faux ecart. Facteur usuel pour
+# du maritime : CIF ~ FOB x 1.10 (parametrable). Pour EXW le vrai facteur est
+# un peu plus fort (chargement, pre-acheminement) : 1.10 reste un plancher.
+FACTEUR_FOB_CIF = 1.10
+FACTEURS_CIF = {"CIF": 1.0, "CIP": 1.0,
+                "FOB": FACTEUR_FOB_CIF, "FCA": FACTEUR_FOB_CIF,
+                "FAS": FACTEUR_FOB_CIF, "EXW": FACTEUR_FOB_CIF}         # faux classement + prix bas : deux signaux convergents
 
 PREFIXE_SIMILAIRES = ("Aucune marchandise identique en base. Référence établie sur "
                       "marchandises similaires (même position SH, origines agrégées) — "
@@ -154,8 +163,24 @@ def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
         r.statut = "INCOMPLET"
         return r
 
-    prix_kg = valeur / poids
-    r.donnees = {"prix_kg_declare": round(prix_kg, 2), "code_sh": sh, "pays_origine": pays}
+    prix_brut = valeur / poids
+    r.donnees = {"prix_kg_declare": round(prix_brut, 2), "code_sh": sh, "pays_origine": pays}
+
+    # Toutes les comparaisons se font en CIF, comme le bareme.
+    incoterm = str(donnees_ddm.get("incoterm") or "").strip().upper()
+    facteur = FACTEURS_CIF.get(incoterm)
+    if not incoterm:
+        r.non_lus.append("DDM.incoterm illisible : prix compare sans ajustement CIF")
+        facteur = 1.0
+    elif facteur is None:
+        r.non_lus.append(f"incoterm {incoterm} : aucun facteur d'ajustement CIF defini, prix compare tel quel")
+        facteur = 1.0
+    prix_kg = prix_brut * facteur
+    ajustement = None
+    if facteur != 1.0:
+        ajustement = {"incoterm_declare": incoterm, "facteur_ajustement": facteur,
+                      "prix_declare_brut": round(prix_brut, 2), "prix_ajuste_cif": round(prix_kg, 2)}
+        r.donnees.update(ajustement)
 
     # ---------- 1. Code declare ----------
     ref = _chercher_reference(bareme, sh, pays)
@@ -230,6 +255,12 @@ def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
     texte = (donnees_agent1 or {}).get("justificatif")
     if texte:
         _rapprocher_justificatif(r, texte, prix_kg)
+
+    if ajustement:
+        for a in r.alertes:
+            a.preuve.update(ajustement)
+            a.message = (f"Prix ramene en CIF ({incoterm} x {facteur:g}) : "
+                         f"{prix_brut:,.2f} -> {prix_kg:,.2f} USD/kg. " + a.message)
 
     # Pose apres ajouter(), qui force 'ALERTE' : l'inspecteur doit savoir que la
     # reference du code declare est absente ou approchee. Une alerte de
