@@ -19,7 +19,7 @@ Toutes les entreprises, adresses et numeros sont inventes.
 """
 import os, sys, json, random
 from datetime import date, timedelta
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
@@ -69,6 +69,15 @@ def entete(c, titre, ref):
     c.line(20*mm, 268*mm, 190*mm, 268*mm)
 
 
+def entete_paysage(c, titre, ref):
+    """Meme en-tete que entete(), sur une page A4 paysage (210 mm de haut)."""
+    c.setFont("Helvetica-Bold", 15)
+    c.drawString(20*mm, 190*mm, titre)
+    c.setFont("Helvetica", 8)
+    c.drawString(20*mm, 184*mm, f"Ref: {ref}")
+    c.line(20*mm, 181*mm, 277*mm, 181*mm)
+
+
 def ligne(c, y, gauche, droite, gras=False):
     c.setFont("Helvetica-Bold" if gras else "Helvetica", 9)
     c.drawString(22*mm, y*mm, str(gauche))
@@ -77,39 +86,48 @@ def ligne(c, y, gauche, droite, gras=False):
 
 
 def facture_pdf(path, d):
-    c = canvas.Canvas(path, pagesize=A4)
-    entete(c, "COMMERCIAL INVOICE", d["ref_facture"])
-    y = 258
+    # A4 paysage, colonnes QTY / UNIT PRICE / AMOUNT repoussees a droite.
+    # Pourquoi : en lecture "mise en page", chaque caractere occupe une colonne
+    # d'environ 7,25 pt quelle que soit la police ; une designation longue
+    # (44 caracteres : "Brand new original Smartphone 6.5 inch 128GB")
+    # debordait sur la colonne QTY en portrait, et l'extracteur, qui exige deux
+    # espaces entre colonnes, ne lisait plus la ligne article. Reduire la police
+    # ne change rien : c'est le nombre de caracteres qui compte, pas leur largeur.
+    # Ici QTY est a 180 mm : designations lues jusqu'a 59 caracteres (mesure ;
+    # la plus longue des jeux de test en fait 44). Aucune designation n'est tronquee.
+    c = canvas.Canvas(path, pagesize=landscape(A4))
+    entete_paysage(c, "COMMERCIAL INVOICE", d["ref_facture"])
+    y = 170
     c.setFont("Helvetica-Bold", 10); c.drawString(22*mm, y*mm, "SELLER")
     c.setFont("Helvetica", 9)
     c.drawString(22*mm, (y-6)*mm, d["fournisseur"])
     c.drawString(22*mm, (y-11)*mm, d["fournisseur_ville"])
-    c.setFont("Helvetica-Bold", 10); c.drawString(110*mm, y*mm, "BUYER")
+    c.setFont("Helvetica-Bold", 10); c.drawString(150*mm, y*mm, "BUYER")
     c.setFont("Helvetica", 9)
-    c.drawString(110*mm, (y-6)*mm, d["importateur"])
-    c.drawString(110*mm, (y-11)*mm, "Tunis, Tunisia")
+    c.drawString(150*mm, (y-6)*mm, d["importateur"])
+    c.drawString(150*mm, (y-11)*mm, "Tunis, Tunisia")
     y -= 24
     y = ligne(c, y, "Date", d["date"])
     y = ligne(c, y, "Incoterm", "CIF Rades")
     y = ligne(c, y, "Currency", "USD")
     y -= 4
-    c.line(20*mm, y*mm, 190*mm, y*mm); y -= 7
+    c.line(20*mm, y*mm, 277*mm, y*mm); y -= 7
     c.setFont("Helvetica-Bold", 9)
     c.drawString(22*mm, y*mm, "DESCRIPTION")
-    c.drawString(115*mm, y*mm, "QTY")
-    c.drawString(140*mm, y*mm, "UNIT PRICE")
-    c.drawRightString(188*mm, y*mm, "AMOUNT")
-    y -= 6; c.line(20*mm, y*mm, 190*mm, y*mm); y -= 7
+    c.drawString(180*mm, y*mm, "QTY")
+    c.drawString(210*mm, y*mm, "UNIT PRICE")
+    c.drawRightString(275*mm, y*mm, "AMOUNT")
+    y -= 6; c.line(20*mm, y*mm, 277*mm, y*mm); y -= 7
     c.setFont("Helvetica", 9)
-    c.drawString(22*mm, y*mm, d["designation_facture"][:48])
-    c.drawString(115*mm, y*mm, f"{d['qte_facture']}")
-    c.drawString(140*mm, y*mm, f"{d['pu']:.2f}")
-    c.drawRightString(188*mm, y*mm, f"{d['total_facture']:,.2f}")
+    c.drawString(22*mm, y*mm, d["designation_facture"])
+    c.drawString(180*mm, y*mm, f"{d['qte_facture']}")
+    c.drawString(210*mm, y*mm, f"{d['pu']:.2f}")
+    c.drawRightString(275*mm, y*mm, f"{d['total_facture']:,.2f}")
     y -= 12
-    c.line(120*mm, y*mm, 190*mm, y*mm); y -= 7
+    c.line(205*mm, y*mm, 277*mm, y*mm); y -= 7
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(122*mm, y*mm, "TOTAL CIF USD")
-    c.drawRightString(188*mm, y*mm, f"{d['total_facture']:,.2f}")
+    c.drawString(207*mm, y*mm, "TOTAL CIF USD")
+    c.drawRightString(275*mm, y*mm, f"{d['total_facture']:,.2f}")
     c.setFont("Helvetica-Oblique", 7)
     c.drawString(20*mm, 15*mm, "Document fictif genere pour test - aucune valeur commerciale")
     c.save()
