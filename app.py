@@ -3,6 +3,12 @@
 L'ecran montre des doutes motives, jamais un verdict : chaque alerte porte
 ses chiffres et l'endroit ou les verifier, et c'est l'inspecteur qui tranche.
 """
+import os
+
+# Avant tout import de numpy (via pandas ou scikit-learn) : sinon OpenBLAS a deja
+# reserve de la memoire par coeur, et sur un poste charge l'allocation echoue.
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+
 import json
 import tempfile
 from datetime import datetime

@@ -3,6 +3,12 @@
 Le chiffre qui compte le plus : les alertes sur les dossiers propres.
 Un outil qui crie sur tout finit ignore par les inspecteurs.
 """
+import os
+
+# Avant tout import de numpy (via pandas ou scikit-learn) : sinon OpenBLAS a deja
+# reserve de la memoire par coeur, et sur un poste charge l'allocation echoue.
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+
 import json
 import sys
 from collections import defaultdict

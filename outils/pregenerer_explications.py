@@ -6,11 +6,13 @@ C'est le SEUL endroit qui appelle le modele de langage. L'interface lit ensuite
 le cache et ne fait aucun appel reseau : une coupure pendant la demonstration
 ne change rien a l'ecran. Sans cle API, le script le dit et rien n'est ecrit.
 """
+import os
 import statistics
 import sys
 from collections import Counter
 from pathlib import Path
 
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")   # avant numpy
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from agents import redaction, stockage  # noqa: E402
 from agents.orchestrateur import analyser_dossier  # noqa: E402
