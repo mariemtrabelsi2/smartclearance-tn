@@ -5,3 +5,5 @@ feedback.jsonl
 donnees/references_vues.csv
 donnees/smartclearance.db
 donnees/*.db.tmp
+donnees/redaction_rejets.jsonl
+donnees/*.json.tmp

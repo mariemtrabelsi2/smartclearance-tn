@@ -37,6 +37,7 @@ from pathlib import Path
 from agents.base import RapportAgent, NIVEAU_CONTRADICTION
 from agents import inspecteur_documentaire, analyste_prix, profileur, isolation
 from agents import registre as agent_registre
+from agents import redaction
 from agents.devises import fmt_tnd, vers_tnd, MENTION_TAUX, SOURCE_TAUX
 
 PARALLELE = os.environ.get("SMARTCLEARANCE_PARALLELE", "0").strip() == "1"
@@ -240,7 +241,8 @@ def synthetiser(rapports: list) -> dict:
     }
 
 
-def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=True) -> dict:
+def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=True,
+                     rediger=True) -> dict:
     """Chaine complete : Agents 1 et 2 lisent le dossier, l'Agent 3 le profil
     de l'operateur, le registre les doublons de facture, le coordinateur
     synthetise. Sources : None = source par defaut du stockage actif.
@@ -283,6 +285,15 @@ def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=Tru
     synthese["valeur_declaree"] = {"usd": v, "tnd": round(vers_tnd(v)) if v else None,
                                    "libelle": f"Valeur declaree : {fmt_tnd(v)}",
                                    "taux": MENTION_TAUX, "source_taux": SOURCE_TAUX}
+
+    # Redaction : APRES que score, recommandation et alertes sont figes. Le LLM
+    # ne touche qu'au texte ; hors cache, aucun appel reseau (repli deterministe).
+    if rediger:
+        texte, source, detail = redaction.rediger_explication(synthese)
+        synthese["explication_deterministe"] = synthese["explication"]
+        synthese["explication"] = texte
+        synthese["source_explication"] = source
+        synthese["detail_explication"] = detail
     return synthese
 
 

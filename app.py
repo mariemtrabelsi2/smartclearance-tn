@@ -124,6 +124,13 @@ with c2:
                     f"border:1px solid {couleur};color:{couleur};border-radius:1rem;"
                     f"font-size:.8rem'>{ref['libelle']}</span>", unsafe_allow_html=True)
     st.write(s["explication"])
+    # Discret : l'inspecteur doit savoir si le texte vient d'un modele de langage.
+    # Dans les deux cas, score, recommandation et alertes sont calcules sans LLM.
+    if s.get("source_explication") == "llm":
+        st.caption(f"Explication générée (modèle {s['detail_explication'].get('modele')}) "
+                   "à partir des alertes ; score et recommandation calculés sans modèle de langage.")
+    else:
+        st.caption("Explication rédigée automatiquement.")
     vd = s.get("valeur_declaree")
     if vd and vd.get("usd"):
         st.markdown(f"**{vd['libelle']}**")
