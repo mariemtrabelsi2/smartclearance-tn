@@ -1,0 +1,7 @@
+couple,appels,mois_avec_donnees,poids_estimes_exclus,nb_observations,min_obs_par_mois,amplitude,indice_etabli,motif
+151090/IT,36,0,0,0,0,,non,"saisonnalite non etablie : 0 observation(s) (minimum 24), 12 mois avec moins de 2 observations"
+610910/TR,36,36,0,36,3,2.397,non,"ecarte : indice(s) hors [0.8, 1.25] {4: 1.34, 8: 1.29, 10: 0.6, 11: 1.44} (bruit probable)"
+851713/CN,36,24,0,24,2,1.706,non,"ecarte : indice(s) hors [0.8, 1.25] {4: 1.3, 12: 0.76} (bruit probable)"
+852872/CN,36,35,0,35,2,1.409,oui,indice etabli
+870322/ES,36,27,0,27,2,1.163,oui,indice etabli
+940360/TR,36,0,0,0,0,,non,"saisonnalite non etablie : 0 observation(s) (minimum 24), 12 mois avec moins de 2 observations"

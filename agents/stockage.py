@@ -27,6 +27,7 @@ REFERENCES_CSV = RACINE / "donnees" / "references_vues.csv"
 FEEDBACK_JSONL = RACINE / "feedback.jsonl"
 NOMENCLATURE_CSV = RACINE / "donnees" / "nomenclature_sh6.csv"
 CHAPITRES_CSV = RACINE / "donnees" / "chapitres_sh.csv"
+SAISONNALITE_CSV = RACINE / "donnees" / "saisonnalite.csv"
 
 COLONNES_REFERENCES = ["reference_facture", "numero_ddm", "importateur", "date", "date_analyse"]
 
@@ -127,6 +128,16 @@ def _csv_lire_chapitres(source=None):
         return None
     with open(chemin, newline="", encoding="utf-8") as f:
         return {l["chapitre"]: l for l in csv.DictReader(f)}
+
+
+def _lire_saisonnalite(source=None):
+    """Petit fichier derive (au plus 12 lignes par couple), lu tel quel dans les
+    deux backends. Absent = aucun indice etabli."""
+    chemin = Path(source or SAISONNALITE_CSV)
+    if not chemin.exists():
+        return None
+    with open(chemin, newline="", encoding="utf-8") as f:
+        return {(l["code_sh"], l["pays"], int(l["mois"])): l for l in csv.DictReader(f)}
 
 
 def _jsonl_ajouter(entree, chemin):
@@ -300,7 +311,8 @@ _IMPL = {
             "enregistrer_feedback": _csv_enregistrer_feedback,
             "lire_feedback": _csv_lire_feedback,
             "registre_temporaire": _csv_registre_temporaire,
-            "lire_nomenclature": _csv_lire_nomenclature, "lire_chapitres": _csv_lire_chapitres},
+            "lire_nomenclature": _csv_lire_nomenclature, "lire_chapitres": _csv_lire_chapitres,
+            "lire_saisonnalite": _lire_saisonnalite},
     "sqlite": {"lire_bareme": _sql_lire_bareme, "chercher_bareme": _sql_chercher_bareme,
                "lire_historique": _sql_lire_historique,
                "chercher_reference": _sql_chercher_reference,
@@ -308,7 +320,8 @@ _IMPL = {
                "enregistrer_feedback": _sql_enregistrer_feedback,
                "lire_feedback": _sql_lire_feedback,
                "registre_temporaire": _sql_registre_temporaire,
-               "lire_nomenclature": _sql_lire_nomenclature, "lire_chapitres": _sql_lire_chapitres},
+               "lire_nomenclature": _sql_lire_nomenclature, "lire_chapitres": _sql_lire_chapitres,
+               "lire_saisonnalite": _lire_saisonnalite},
 }
 
 
@@ -359,6 +372,11 @@ def lire_nomenclature(source=None):
 def lire_chapitres(source=None):
     """{chapitre: {chapitre, section, libelle_section, libelle_court, designation}} ou None."""
     return _impl("lire_chapitres")(source)
+
+
+def lire_saisonnalite(source=None):
+    """{(code_sh, pays, mois): {indice, nb_observations, amplitude}} ou None."""
+    return _impl("lire_saisonnalite")(source)
 
 
 def registre_temporaire():

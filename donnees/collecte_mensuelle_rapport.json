@@ -1,0 +1,39 @@
+{
+  "periodes_interrogees": "202101..202312",
+  "couples": {
+    "151090/IT": {
+      "appels": 36,
+      "mois_avec_donnees": 0,
+      "erreurs": {}
+    },
+    "610910/TR": {
+      "appels": 36,
+      "mois_avec_donnees": 36,
+      "erreurs": {}
+    },
+    "851713/CN": {
+      "appels": 36,
+      "mois_avec_donnees": 24,
+      "erreurs": {}
+    },
+    "852872/CN": {
+      "appels": 36,
+      "mois_avec_donnees": 35,
+      "erreurs": {}
+    },
+    "870322/ES": {
+      "appels": 36,
+      "mois_avec_donnees": 27,
+      "erreurs": {
+        "HTTP 403": 9
+      }
+    },
+    "940360/TR": {
+      "appels": 36,
+      "mois_avec_donnees": 0,
+      "erreurs": {
+        "HTTP 403": 36
+      }
+    }
+  }
+}

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from agents import nomenclature, stockage
 from agents.base import RapportAgent, NIVEAU_ECART
-from agents.devises import conversion, fmt_tnd, fmt_tnd_kg, vers_tnd, MENTION_TAUX
+from agents.devises import conversion, fmt_tnd, fmt_tnd_kg, nombre_fr, vers_tnd, MENTION_TAUX
 
 RACINE = Path(__file__).resolve().parent.parent
 BAREME_DEFAUT = RACINE / "bareme.csv"
@@ -118,6 +118,23 @@ def _qualifier_par_qualite(r, q):
         a.preuve.update({"qualite_detectee": ", ".join(termes), "famille": famille,
                          "effet_gravite": effet, "limite": LIMITE_QUALITE})
         a.message = a.message.replace(f" {MENTION_OMC}", f" {ajout} {MENTION_OMC}")
+
+
+MOIS_FR = ["", "janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout",
+           "septembre", "octobre", "novembre", "decembre"]
+
+
+def _saison(sh, pays, mois):
+    """Bloc de preuve de l'ajustement saisonnier, ou None s'il n'y a pas d'indice
+    etabli pour ce couple et ce mois (cas general : comportement inchange)."""
+    if not mois:
+        return None
+    ligne = (stockage.lire_saisonnalite() or {}).get((sh, pays, int(mois)))
+    if not ligne:
+        return None
+    return {"reference_annuelle": None, "indice_saisonnier": float(ligne["indice"]),
+            "mois": f"{int(mois):02d}", "nb_observations_indice": int(ligne["nb_observations"]),
+            "amplitude_saisonniere": float(ligne["amplitude"])}
 
 
 def _chercher_reference(bareme, sh, pays):
@@ -239,6 +256,8 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
         r.donnees.update(ajustement)
 
     suggere = str((donnees_agent1 or {}).get("code_sh_suggere") or "").strip()
+    date_facture = str(((donnees_agent1 or {}).get("facture") or {}).get("date") or "")
+    mois_facture = int(date_facture[5:7]) if len(date_facture) >= 7 and date_facture[5:7].isdigit() else None
     bareme = lire_bareme([sh, suggere], bareme_csv)
     nom_bareme = Path(bareme_csv).name if bareme_csv else stockage.nom_source("bareme")
 
@@ -254,6 +273,12 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
         if ref["type"] == "similaires":
             r.non_lus.append(f"reference_exacte_{sh}_{pays}")
         mediane = statistics.median(ref["prix_ref"])
+        # Saisonnalite : seulement si un indice etabli existe pour CE couple et CE
+        # mois (reference "identiques"). Sinon, reference annuelle, comme avant.
+        saison = _saison(sh, pays, mois_facture) if ref["type"] == "identiques" else None
+        if saison:
+            saison["reference_annuelle"] = mediane
+            mediane = saison["reference_ajustee"] = round(mediane * saison["indice_saisonnier"], 4)
         ecart = 100 * (prix_kg - mediane) / mediane
         r.donnees.update({"prix_kg_reference": mediane, "ecart_pct": round(ecart, 1),
                           "fiabilite_reference": ref["fiabilite"],
@@ -275,6 +300,12 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
                 source=f"DDM : valeur_cif_usd / poids_net_kg ; bareme {nom_bareme} "
                        f"lignes {sh}/{','.join(ref['origines'])}",
             )
+            if saison:
+                a = r.alertes[-1]
+                a.preuve.update(saison)
+                a.message = (f"Reference ajustee pour le mois de {MOIS_FR[int(saison['mois'])]} "
+                             f"(indice {nombre_fr(saison['indice_saisonnier'])}, etabli sur "
+                             f"{saison['nb_observations_indice']} observations mensuelles). " + a.message)
         statut_declare = "REFERENCE_PARTIELLE" if ref["type"] == "similaires" else None
 
     # ---------- 2. Code suggere par l'Agent 1 ----------
