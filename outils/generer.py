@@ -246,6 +246,20 @@ def transport_pdf(path, d):
 
 
 # ------------------------------------------------------------- fabrication
+def conteneur_iso6346(tire):
+    """Remplace le 11e caractere par le vrai chiffre de controle ISO 6346.
+    Calcul deterministe, aucun tirage : la suite aleatoire ne bouge pas.
+    Avant cette correction, ~10 numeros sur 11 etaient non conformes."""
+    valeurs, v = {}, 10
+    for lettre in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
+        if v % 11 == 0:
+            v += 1
+        valeurs[lettre] = v
+        v += 1
+    total = sum((valeurs[c] if c.isalpha() else int(c)) * 2 ** i for i, c in enumerate(tire[:10]))
+    return tire[:10] + str(total % 11 % 10)
+
+
 def construire(i):
     sh, des_fact, des_off, prix_ref, kg_u = random.choice(PRODUITS)
     fo, ville, iso = random.choice(FOURNISSEURS)
@@ -255,7 +269,7 @@ def construire(i):
     d = {
         "ref_facture": f"INV-2026-{1000+i}",
         "ref_transport": f"BL{random.randint(100000,999999)}",
-        "conteneur": f"{random.choice(['MSCU','TGHU','CMAU'])}{random.randint(1000000,9999999)}",
+        "conteneur": conteneur_iso6346(f"{random.choice(['MSCU','TGHU','CMAU'])}{random.randint(1000000,9999999)}"),
         "navire": random.choice(["MSC ALTAIR", "CMA CGM TARIK", "MAERSK SIROCCO"]),
         "date": f"2026-0{random.randint(1,9)}-{random.randint(10,28)}",
         "fournisseur": fo, "fournisseur_ville": ville, "importateur": imp,
