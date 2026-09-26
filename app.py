@@ -78,7 +78,7 @@ st.title("SmartClearance TN")
 st.caption("Aide au contrôle du couloir orange — recoupement DDM / pièces jointes. "
            "L'outil formule des doutes motivés ; la décision appartient à l'inspecteur.")
 
-mode = st.radio("Source", ["Dossier de test", "Déposer 4 fichiers"], horizontal=True)
+mode = st.radio("Source", ["Dossier de test", "Déposer les pièces du dossier"], horizontal=True)
 
 if mode == "Dossier de test":
     noms = sorted(p.name for p in DOSSIERS.glob("dossier_*") if p.is_dir())
