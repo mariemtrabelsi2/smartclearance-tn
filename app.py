@@ -17,7 +17,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from agents import stockage
+from agents import libelles, stockage
+from agents.devises import fr
 from agents.orchestrateur import analyser_dossier
 
 RACINE = Path(__file__).resolve().parent
@@ -27,8 +28,7 @@ COULEUR_NIVEAU = {1: "#c62828", 2: "#ef6c00"}
 LIBELLE_NIVEAU = {1: "Contradiction (niveau 1)", 2: "Écart à justifier (niveau 2)"}
 COULEUR_RECO = {"LIBERATION": "#2e7d32", "CONTROLE_DOCUMENTAIRE": "#ef6c00",
                 "CONTROLE_PHYSIQUE": "#c62828"}
-LIBELLE_RECO = {"LIBERATION": "Libération", "CONTROLE_DOCUMENTAIRE": "Contrôle documentaire",
-                "CONTROLE_PHYSIQUE": "Contrôle physique"}
+LIBELLE_RECO = libelles.LIBELLES_RECO      # memes libelles que l'explication
 PIECES = ["ddm.json", "facture.pdf", "colisage.pdf", "transport.pdf"]
 
 st.set_page_config(page_title="SmartClearance TN", layout="wide")
@@ -82,25 +82,27 @@ mode = st.radio("Source", ["Dossier de test", "Déposer les pièces du dossier"]
 
 if mode == "Dossier de test":
     noms = sorted(p.name for p in DOSSIERS.glob("dossier_*") if p.is_dir())
-    choix = st.selectbox("Dossier", noms)
+    # Affichage "Dossier 4" ; la valeur choisie reste le nom de repertoire.
+    choix = st.selectbox("Dossier", noms, format_func=lambda n: f"Dossier {int(n.split('_')[1])}")
     if st.button("Analyser", type="primary"):
         st.session_state["synthese"] = analyser_dossier(DOSSIERS / choix)
         st.session_state["dossier"] = choix
 else:
-    depots = {nom: st.file_uploader(nom, type=[nom.split(".")[-1]], key=f"up_{nom}")
+    depots = {nom: st.file_uploader(libelles.piece_depot(nom), type=[nom.split(".")[-1]],
+                                    key=f"up_{nom}")
               for nom in PIECES}
     # Facultatif : une remise documentee que l'Agent 2 rapproche de l'ecart de prix.
-    depots["justificatif.pdf"] = st.file_uploader("justificatif.pdf (facultatif)", type=["pdf"],
-                                                  key="up_justificatif.pdf")
+    depots["justificatif.pdf"] = st.file_uploader(libelles.piece_depot("justificatif.pdf"),
+                                                  type=["pdf"], key="up_justificatif.pdf")
     # Facultatif : exige seulement pour un regime preferentiel, son absence n'est pas une anomalie.
-    depots["certificat_origine.pdf"] = st.file_uploader("certificat_origine.pdf (facultatif)",
+    depots["certificat_origine.pdf"] = st.file_uploader(libelles.piece_depot("certificat_origine.pdf"),
                                                         type=["pdf"], key="up_certificat_origine.pdf")
     manquants = [n for n in PIECES if depots[n] is None]
     if st.button("Analyser", type="primary", disabled=bool(manquants)):
         st.session_state["synthese"] = analyser_depot(depots)
         st.session_state["dossier"] = "depot_" + datetime.now().strftime("%H%M%S")
     if manquants:
-        st.caption("Pièces manquantes : " + ", ".join(manquants))
+        st.caption("Pièces manquantes : " + ", ".join(libelles.piece_depot(n) for n in manquants))
 
 s = st.session_state.get("synthese")
 if not s:
@@ -145,8 +147,10 @@ with c2:
     # Discret : l'inspecteur doit savoir si le texte vient d'un modele de langage.
     # Dans les deux cas, score, recommandation et alertes sont calcules sans LLM.
     if s.get("source_explication") == "llm":
-        st.caption(f"Explication générée (modèle {s['detail_explication'].get('modele')}) "
-                   "à partir des alertes ; score et recommandation calculés sans modèle de langage.")
+        # Nom technique du modele en repli discret (infobulle), pas dans la phrase.
+        st.caption("Explication générée par un modèle de langage externe à partir des alertes ; "
+                   "score et recommandation calculés sans modèle de langage.",
+                   help=f"Modèle : {s['detail_explication'].get('modele')}")
     else:
         st.caption("Explication rédigée automatiquement.")
     vd = s.get("valeur_declaree")
@@ -167,7 +171,7 @@ for i, a in enumerate(s["alertes"]):
     st.markdown(
         f"<div style='border-left:6px solid {couleur};padding:.4rem .8rem;margin-top:1rem;"
         f"background:{couleur}14'><span style='color:{couleur};font-weight:700'>"
-        f"{LIBELLE_NIVEAU.get(a['niveau'], '')} · {a['type']} · gravité {a['gravite']}</span>"
+        f"{LIBELLE_NIVEAU.get(a['niveau'], '')} · {libelles.alerte(a['type'])} · gravité {a['gravite']}</span>"
         f"<br>{a['message']}</div>", unsafe_allow_html=True)
     st.dataframe(tableau_preuve(a["preuve"]), hide_index=True, width="stretch")
     st.caption(f"Source : {a['source']}")
@@ -175,7 +179,7 @@ for i, a in enumerate(s["alertes"]):
     # est annonce en clair, avec ce qui le fonde.
     if "ajustement_apprentissage" in a["preuve"]:
         p = a["preuve"]
-        st.info(f"Gravité ajustée par les retours des inspecteurs : x{p['ajustement_apprentissage']} "
+        st.info(f"Gravité ajustée par les retours des inspecteurs : x{fr(p['ajustement_apprentissage'])} "
                 f"({p['gravite_avant_ajustement']} → {a['gravite']}), fondé sur {p['fonde_sur']}, "
                 f"calculé le {p['calcule_le']}.")
     elif "retours_inspecteurs" in a["preuve"]:
@@ -201,7 +205,8 @@ with st.container(border=True):
     if s["champs_non_lus"]:
         st.caption("Ces éléments n'ont pas pu être lus ou comparés : "
                    "aucun contrôle n'a été fait dessus, rien n'a été deviné.")
-        st.markdown("\n".join(f"- `{n}`" for n in s["champs_non_lus"]))
+        # Du texte, pas du code : marqueurs internes traduits en francais.
+        st.markdown("\n".join(f"- {libelles.non_lu(n)}" for n in s["champs_non_lus"]))
     else:
         st.caption("Tous les champs attendus ont été lus.")
 

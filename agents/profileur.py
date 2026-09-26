@@ -11,6 +11,7 @@ from datetime import date
 from pathlib import Path
 
 from agents import nomenclature, stockage
+from agents.devises import fr, fr_signe
 from agents.base import RapportAgent, NIVEAU_ECART
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -78,7 +79,7 @@ def analyser(ddm: dict, historique_csv=None, date_ddm=None,
     r = RapportAgent(agent="Profileur")
     histo = stockage.lire_historique(historique_csv)
     if histo is None:
-        r.non_lus.append("historique des declarations indisponible")
+        r.non_lus.append("Historique des déclarations indisponible")
         r.statut = "INCOMPLET"
         return r
 
@@ -93,7 +94,7 @@ def analyser(ddm: dict, historique_csv=None, date_ddm=None,
 
     if not siennes:
         # Un operateur inconnu n'est pas suspect : on le dit, on ne conclut rien.
-        r.non_lus.append(f"historique_importateur : '{ddm.get('importateur')}' absent de l'historique")
+        r.non_lus.append(f"Importateur '{ddm.get('importateur')}' absent de l'historique")
         r.statut = "INCOMPLET"
         return r
 
@@ -108,7 +109,7 @@ def analyser(ddm: dict, historique_csv=None, date_ddm=None,
             r.ajouter(
                 type="origine_juridiction_surveillee", niveau=NIVEAU_ECART, gravite=35,
                 message=(f"Le {role} ({entree['code_pays']}) figure sur la liste des juridictions "
-                         f"sous surveillance renforcee : {entree['motif']}."),
+                         f"sous surveillance renforcée : {entree['motif']}."),
                 preuve={"pays": entree["code_pays"], "motif": entree["motif"],
                         "source": entree["source"]},
                 source=f"{Path(pays_risque_csv).name}",
@@ -121,8 +122,8 @@ def analyser(ddm: dict, historique_csv=None, date_ddm=None,
     if anciennete < ANCIENNETE_MIN_MOIS:
         r.ajouter(
             type="anciennete_importateur", niveau=NIVEAU_ECART, gravite=30,
-            message=(f"Operateur recent : premiere declaration le {premiere.isoformat()}, "
-                     f"soit {anciennete:.1f} mois avant cette operation."),
+            message=(f"Opérateur récent : première déclaration le {premiere.isoformat()}, "
+                     f"soit {fr(anciennete, 1)} mois avant cette opération."),
             preuve={"premiere_declaration": premiere.isoformat(),
                     "anciennete_mois": round(anciennete, 1), "seuil_mois": ANCIENNETE_MIN_MOIS,
                     "nb_declarations": len(siennes)},
@@ -133,7 +134,7 @@ def analyser(ddm: dict, historique_csv=None, date_ddm=None,
     if four and not any(_norm(l["fournisseur"]) == four for l in histo):
         r.ajouter(
             type="fournisseur_inconnu", niveau=NIVEAU_ECART, gravite=25,
-            message=f"Fournisseur '{ddm.get('fournisseur')}' jamais rencontre dans l'historique.",
+            message=f"Fournisseur '{ddm.get('fournisseur')}' jamais rencontré dans l'historique.",
             preuve={"fournisseur": ddm.get("fournisseur"), "nb_declarations_historique": len(histo)},
             source="historique des declarations, tous importateurs",
         )
@@ -144,9 +145,9 @@ def analyser(ddm: dict, historique_csv=None, date_ddm=None,
         r.ajouter(
             type="changement_secteur", niveau=NIVEAU_ECART, gravite=50,
             # Meme controle, message lisible : les libelles des chapitres, pas leurs numeros.
-            message=(f"L'importateur n'a jamais importe de marchandises de ce chapitre. Chapitres "
+            message=(f"L'importateur n'a jamais importé de marchandises de ce chapitre. Chapitres "
                      f"habituels : {', '.join(nomenclature.chapitre_lisible(c) for c in chapitres)} ; "
-                     f"chapitre declare : {nomenclature.chapitre_lisible(sh[:2])}."),
+                     f"chapitre déclaré : {nomenclature.chapitre_lisible(sh[:2])}."),
             preuve={"chapitres_habituels": chapitres, "chapitre_declare": sh[:2],
                     "libelles_habituels": [nomenclature.libelle_chapitre(c) for c in chapitres],
                     "libelle_declare": nomenclature.libelle_chapitre(sh[:2]),
@@ -167,9 +168,9 @@ def analyser(ddm: dict, historique_csv=None, date_ddm=None,
         if pente_pct <= DERIVE_PENTE_MAX_PCT and t <= DERIVE_T_MAX:
             r.ajouter(
                 type="derive_prix", niveau=NIVEAU_ECART, gravite=60,
-                message=(f"Le prix au kilo declare par cet importateur pour le code {sh} baisse "
-                         f"regulierement : {pente_pct:+.1f} % par trimestre sur "
-                         f"{len(serie)} declarations."),
+                message=(f"Le prix au kilo déclaré par cet importateur pour le code {sh} baisse "
+                         f"régulièrement : {fr_signe(pente_pct, 1)} % par trimestre sur "
+                         f"{len(serie)} déclarations."),
                 preuve={"pente_pct_par_trimestre": round(pente_pct, 1),
                         "nb_declarations": len(serie),
                         "periode": f"{serie[0]['date']:%Y-%m} a {serie[-1]['date']:%Y-%m}",
@@ -193,8 +194,8 @@ def analyser(ddm: dict, historique_csv=None, date_ddm=None,
             r.ajouter(
                 type="fournisseur_partage", niveau=NIVEAU_ECART, gravite=55,
                 message=(f"Le fournisseur '{ddm.get('fournisseur')}' livre {len(clients)} "
-                         f"importateurs, dont {avec_alertes} ont deja declare des prix inferieurs "
-                         f"de plus de 30 % a la mediane du marche."),
+                         f"importateurs, dont {avec_alertes} ont déjà déclaré des prix inférieurs "
+                         f"de plus de 30 % à la médiane du marché."),
                 preuve={"fournisseur": ddm.get("fournisseur"), "nb_importateurs": len(clients),
                         "dont_avec_alertes": avec_alertes},
                 source="historique des declarations, tous importateurs de ce fournisseur",

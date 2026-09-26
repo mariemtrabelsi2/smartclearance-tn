@@ -13,7 +13,7 @@ from agents.base import RapportAgent, NIVEAU_CONTRADICTION, NIVEAU_ECART
 from agents.extraction import pdf_vers_texte, extraire_champs_detail, CHAMPS, cle_nom, cle_conteneur
 from agents.saisie import controles_saisie
 from agents import nomenclature
-from agents.devises import conversion, fmt_tnd, nombre_fr
+from agents.devises import conversion, fmt_tnd, nombre_fr, fr, fr_signe
 
 RACINE = Path(__file__).resolve().parent.parent
 
@@ -37,7 +37,7 @@ PRODUITS = [
      "sh4": ["9403"], "sh6": "940360", "poids_min": 8, "poids_max": 150},
     {"mots": ["smartphone", "mobile phone"], "libelle": "smartphone",
      "sh4": ["8517"], "sh6": "851713", "poids_min": 0.08, "poids_max": 0.6},
-    {"mots": ["led tv", "television", "tv "], "libelle": "televiseur 43 pouces",
+    {"mots": ["led tv", "television", "tv "], "libelle": "téléviseur 43 pouces",
      "sh4": ["8528"], "sh6": "852872", "poids_min": 3, "poids_max": 25},
     {"mots": ["t-shirt", "tee-shirt", "tshirt"], "libelle": "t-shirt en coton",
      "sh4": ["6109"], "sh6": "610910", "poids_min": 0.08, "poids_max": 0.6},
@@ -90,13 +90,13 @@ def _designation_vague(designation, prod):
 # (Comtrade agrege au code SH6, sans distinction de gamme). Terme -> qualificatif
 # utilise dans le message de l'Agent 2.
 QUALITE_DEGRADANTE = {
-    r"refurbished": "reconditionnee", r"reconditionnee?s?": "reconditionnee",
+    r"refurbished": "reconditionnée", r"reconditionnee?s?": "reconditionnée",
     r"used": "d'occasion", r"second[ -]hand": "d'occasion", r"d'occasion|occasion": "d'occasion",
     r"second choice": "de second choix", r"seconds": "de second choix",
     r"b[ -]grade": "de second choix", r"class b": "de second choix",
-    r"overstock": "de fin de serie ou de surstock", r"end of line": "de fin de serie ou de surstock",
-    r"clearance stock": "de fin de serie ou de surstock",
-    r"defective": "defectueuse ou endommagee", r"damaged": "defectueuse ou endommagee",
+    r"overstock": "de fin de série ou de surstock", r"end of line": "de fin de série ou de surstock",
+    r"clearance stock": "de fin de série ou de surstock",
+    r"defective": "défectueuse ou endommagée", r"damaged": "défectueuse ou endommagée",
     r"sans marque": "sans marque", r"no brand": "sans marque",
 }
 QUALITE_VALORISANTE = [r"premium", r"brand new", r"original", r"genuine", r"first choice",
@@ -180,7 +180,7 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
         try:
             r.donnees["justificatif"] = pdf_vers_texte(justif)
         except Exception:
-            r.non_lus.append("justificatif.pdf : illisible")
+            r.non_lus.append("Justificatif commercial illisible")
 
     for type_doc, champs in docs.items():
         r.non_lus += [f"{type_doc}.{c}" for c, v in champs.items() if v is None]
@@ -196,8 +196,8 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
     if len(set(lues.values())) > 1:
         r.ajouter(
             type="ecart_quantite", niveau=NIVEAU_CONTRADICTION, gravite=80,
-            message="Les quantites ne concordent pas : "
-                    + ", ".join(f"{k} {v}" for k, v in qtes.items()) + ".",
+            message="Les quantités ne concordent pas : "
+                    + ", ".join(f"{k} {fr(v)}" for k, v in qtes.items()) + ".",
             preuve=qtes,
             source="facture : ligne article, colonne QTY / colisage : ligne 'Quantity' / DDM : champ quantite"
                    + (" / certificat : ligne 'Quantity'" if cer is not None else ""),
@@ -220,8 +220,8 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
             preuve["certificat_kg"] = pn_cer
         r.ajouter(
             type="ecart_poids", niveau=NIVEAU_CONTRADICTION, gravite=75,
-            message=(f"Poids net {doc} ({pn:,.1f} kg) different du poids net "
-                     f"declare ({pn_ddm:,.1f} kg), soit {pn - pn_ddm:+,.1f} kg."),
+            message=(f"Poids net {doc} ({fr(pn)} kg) différent du poids net "
+                     f"déclaré ({fr(pn_ddm)} kg), soit {fr_signe(pn - pn_ddm)} kg."),
             preuve=preuve,
             source="colisage : ligne 'Net weight' / DDM : champ poids_net_kg"
                    + (" / certificat : ligne 'Net weight'" if cer is not None else ""),
@@ -232,8 +232,8 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
     mt, v_ddm = fac["montant_total"], ddm.get("valeur_cif_usd")
     conv = conversion(mt, fac["devise"])
     if mt is not None and conv is None:
-        r.non_lus.append(f"facture.devise illisible ou inconnue ({fac['devise']}) : "
-                         "valeur facture non comparee a la DDM")
+        r.non_lus.append(f"Devise de la facture illisible ou inconnue ({fac['devise']}) : "
+                         "valeur de la facture non comparée à la DDM")
     mt_usd = conv["valeur_usd"] if conv else None
     if mt_usd is not None and v_ddm is not None and _ecart_relatif(mt_usd, v_ddm) > 0.01:
         preuve = {"facture_total": mt, "DDM_valeur_cif_usd": v_ddm,
@@ -245,7 +245,7 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
         r.ajouter(
             type="ecart_valeur", niveau=NIVEAU_CONTRADICTION, gravite=85,
             message=(f"La facture totalise {devise_txt}{fmt_tnd(mt_usd)}, alors que la DDM "
-                     f"declare une valeur CIF de {fmt_tnd(v_ddm)}."),
+                     f"déclare une valeur CIF de {fmt_tnd(v_ddm)}."),
             preuve=preuve,
             source="facture : lignes 'Currency' et 'TOTAL CIF' / DDM : champ valeur_cif_usd",
         )
@@ -265,7 +265,7 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
             preuve.update({"certificat": o_cer, "trois_sources_divergentes": trois_divergent})
         r.ajouter(
             type="ecart_origine", niveau=NIVEAU_CONTRADICTION, gravite=70,
-            message=f"Le connaissement indique l'origine {o_tra}, la DDM declare {o_ddm}.",
+            message=f"Le connaissement indique l'origine {o_tra}, la DDM déclare {o_ddm}.",
             preuve=preuve,
             source="connaissement : ligne 'Country of origin' / DDM : champ pays_origine",
         )
@@ -274,10 +274,10 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
     if o_cer and o_ddm and o_cer != o_ddm:
         r.ajouter(
             type="ecart_origine_certificat", niveau=NIVEAU_CONTRADICTION, gravite=85,
-            message=(f"Le certificat d'origine atteste l'origine {o_cer}, la DDM declare {o_ddm}"
+            message=(f"Le certificat d'origine atteste l'origine {o_cer}, la DDM déclare {o_ddm}"
                      + (f", le connaissement indique {o_tra} : les trois sources divergent."
                         if trois_divergent else ".")
-                     + " Le certificat fonde l'origine et le regime tarifaire preferentiel."),
+                     + " Le certificat fonde l'origine et le régime tarifaire préférentiel."),
             preuve={**sources, "trois_sources_divergentes": trois_divergent},
             source="certificat : ligne 'Country of origin' / connaissement : ligne 'Country of origin' "
                    "/ DDM : champ pays_origine",
@@ -286,8 +286,8 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
     if cer is not None and cer["pays_autorite"] and o_cer and cer["pays_autorite"] != o_cer:
         r.ajouter(
             type="autorite_emettrice_incoherente", niveau=NIVEAU_CONTRADICTION, gravite=80,
-            message=("L'autorite qui certifie l'origine n'est pas etablie dans le pays "
-                     "d'origine annonce."),
+            message=("L'autorité qui certifie l'origine n'est pas établie dans le pays "
+                     "d'origine annoncé."),
             preuve={"origine_certifiee": o_cer, "pays_autorite": cer["pays_autorite"],
                     "autorite": cer["autorite_emettrice"]},
             source="certificat : lignes 'Issuing authority' et 'Country of origin'",
@@ -308,8 +308,8 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
     if q is not None and pu is not None and mt is not None and _ecart_relatif(q * pu, mt) > 0.01:
         r.ajouter(
             type="erreur_arithmetique", niveau=NIVEAU_CONTRADICTION, gravite=60,
-            message=(f"Sur la facture, {q} x {pu:,.2f} = {q * pu:,.2f}, "
-                     f"mais le total affiche est {mt:,.2f}."),
+            message=(f"Sur la facture, {fr(q)} x {fr(pu, 2)} = {fr(q * pu, 2)}, "
+                     f"mais le total affiché est {fr(mt, 2)}."),
             preuve={"quantite": q, "prix_unitaire": pu, "produit_calcule": round(q * pu, 2),
                     "total_affiche": mt},
             source="facture : ligne article (QTY, UNIT PRICE) et ligne 'TOTAL'",
@@ -334,7 +334,7 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
         if absente:
             r.ajouter(
                 type="ecart_reference", niveau=NIVEAU_CONTRADICTION, gravite=40,
-                message=f"La reference facture {ref} ne se retrouve pas sur : {', '.join(absente)}.",
+                message=f"La référence de facture {ref} ne se retrouve pas sur : {', '.join(absente)}.",
                 preuve={"facture": ref, "colisage": col["reference"],
                         "DDM": ddm.get("reference_facture")},
                 source="facture : ligne 'Ref' / colisage : ligne 'Ref' / DDM : champ reference_facture",
@@ -351,14 +351,14 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
     designation = fac["designation"] or col["designation"]
     prod = _produit(designation)
     if designation and prod is None:
-        r.non_lus.append(f"produit non reconnu par la table de reference : '{designation}'")
+        r.non_lus.append(f"Produit non reconnu par la table de référence : '{designation}'")
 
     vague = _designation_vague(fac["designation"], prod)
     if vague:
         r.ajouter(
             type="designation_vague", niveau=NIVEAU_ECART, gravite=45,
-            message=("Designation insuffisamment precise pour verifier le classement "
-                     "tarifaire. Complement d'information a demander."),
+            message=("Désignation insuffisamment précise pour vérifier le classement "
+                     "tarifaire. Complément d'information à demander."),
             preuve={"designation_facture": fac["designation"],
                     "longueur": len(fac["designation"].split()), "motif": vague},
             source="facture : ligne article, colonne DESCRIPTION",
@@ -369,12 +369,12 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
     # Existence du code declare dans la nomenclature : un fait, pas une hypothese.
     existe = nomenclature.existe(code_sh) if code_sh else None
     if existe is None and code_sh:
-        r.non_lus.append("nomenclature SH indisponible : existence du code non verifiee")
+        r.non_lus.append("Nomenclature SH indisponible : existence du code non vérifiée")
     elif existe is False:
         r.ajouter(
             type="code_sh_inexistant", niveau=NIVEAU_CONTRADICTION, gravite=75,
-            message=(f"Le code SH declare {code_sh} n'existe pas dans la {nomenclature.LIBELLE_SOURCE} "
-                     f"({nomenclature.nb_positions()} positions a 6 chiffres)."),
+            message=(f"Le code SH déclaré {code_sh} n'existe pas dans la {nomenclature.LIBELLE_SOURCE} "
+                     f"({fr(nomenclature.nb_positions())} positions à 6 chiffres)."),
             preuve={"code_declare": code_sh, "existe": False,
                     "source": f"{nomenclature.LIBELLE_SOURCE}, {nomenclature.nb_positions()} positions"},
             source="DDM : champ code_sh / donnees/nomenclature_sh6.csv",
@@ -383,15 +383,15 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
     des_cer = cer["designation"] if cer is not None else None
     prod_cer = _produit(des_cer)
     if cer is not None and des_cer and prod_cer is None:
-        r.non_lus.append(f"produit du certificat non reconnu par la table de reference : '{des_cer}'")
+        r.non_lus.append(f"Produit du certificat non reconnu par la table de référence : '{des_cer}'")
     # Chaque document est controle : si seul le certificat decrit une marchandise
     # incompatible avec le code declare, on le signale aussi.
     if prod_cer and code_sh and not code_sh.startswith(tuple(prod_cer["sh4"])) \
             and (prod is None or code_sh.startswith(tuple(prod["sh4"]))):
         r.ajouter(
             type="designation_vs_sh", niveau=NIVEAU_ECART, gravite=75,
-            message=(f"Le certificat d'origine decrit '{des_cer}' ({prod_cer['libelle']}, position "
-                     f"{' ou '.join(prod_cer['sh4'])}) mais la DDM declare le code SH "
+            message=(f"Le certificat d'origine décrit '{des_cer}' ({prod_cer['libelle']}, position "
+                     f"{' ou '.join(prod_cer['sh4'])}) mais la DDM déclare le code SH "
                      f"{nomenclature.code_lisible(code_sh)}."),
             preuve={"designation_certificat": des_cer, "designation_facture": designation,
                     "positions_admises": prod_cer["sh4"], "code_sh_declare": code_sh,
@@ -406,10 +406,10 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
         if code_sh and not code_sh.startswith(tuple(prod["sh4"])):
             r.ajouter(
                 type="designation_vs_sh", niveau=NIVEAU_ECART, gravite=75,
-                message=(f"La facture decrit '{designation}' ({prod['libelle']}, position "
-                         f"{' ou '.join(prod['sh4'])}) mais la DDM declare le code SH {code_sh} "
+                message=(f"La facture décrit '{designation}' ({prod['libelle']}, position "
+                         f"{' ou '.join(prod['sh4'])}) mais la DDM déclare le code SH {code_sh} "
                          f"('{ddm.get('designation', '')}' ; nomenclature : "
-                         f"{nomenclature.designation(code_sh) or 'designation inconnue'})."),
+                         f"{nomenclature.designation(code_sh) or 'désignation inconnue'})."),
                 preuve={"designation_facture": designation, "positions_admises": prod["sh4"],
                         "code_sh_declare": code_sh, "designation_DDM": ddm.get("designation"),
                         "designation_officielle_declare": nomenclature.designation(code_sh),
@@ -432,10 +432,10 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
                 u = unitaires[candidates[0]] if len(candidates) == 1 else None
                 r.ajouter(
                     type="poids_invraisemblable", niveau=NIVEAU_ECART, gravite=70,
-                    message=(f"{pn:,.1f} kg pour {', '.join(str(c) for c in candidates)} unites "
+                    message=(f"{fr(pn)} kg pour {', '.join(fr(c) for c in candidates)} unités "
                              f"de '{designation}' : "
-                             + (f"{u:.3f} kg par unite" if u is not None else "poids unitaire")
-                             + f", hors de la plage plausible {prod['poids_min']}-{prod['poids_max']} kg."),
+                             + (f"{fr(u, max_decimales=3)} kg par unité" if u is not None else "poids unitaire")
+                             + f", hors de la plage plausible {fr(prod['poids_min'])}-{fr(prod['poids_max'])} kg."),
                     preuve={"poids_net_kg": pn,
                             "poids_unitaire_kg": {str(k): round(v, 3) for k, v in unitaires.items()},
                             "plage_plausible_kg": [prod["poids_min"], prod["poids_max"]],

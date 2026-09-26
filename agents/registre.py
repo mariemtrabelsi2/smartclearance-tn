@@ -18,7 +18,7 @@ def analyser(ddm: dict, facture: dict, registre=None) -> RapportAgent:
     ref = (facture or {}).get("reference") or ddm.get("reference_facture")
     numero = ddm.get("numero_ddm")
     if not ref or not numero:
-        r.non_lus.append("reference facture ou numero DDM absent : doublon non verifie")
+        r.non_lus.append("Référence de facture ou numéro de DDM absent : doublon non vérifié")
         r.statut = "INCOMPLET"
         return r
 
@@ -29,7 +29,7 @@ def analyser(ddm: dict, facture: dict, registre=None) -> RapportAgent:
         p = autres[0]
         r.ajouter(
             type="reference_facture_dupliquee", niveau=NIVEAU_CONTRADICTION, gravite=85,
-            message="Cette reference de facture couvre deja une autre declaration.",
+            message="Cette référence de facture couvre déjà une autre déclaration.",
             preuve={"reference": ref, "ddm_actuelle": numero, "ddm_precedente": p["numero_ddm"],
                     "date_precedente": p["date"], "importateur_precedent": p["importateur"],
                     "nb_declarations_avec_cette_reference": len({_cle(l["numero_ddm"]) for l in memes}) + 1},

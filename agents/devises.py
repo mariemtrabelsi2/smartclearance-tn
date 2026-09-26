@@ -44,6 +44,24 @@ def nombre_fr(x, decimales=2):
     return _nombre(x, decimales)
 
 
+def fr(x, decimales=None, max_decimales=2):
+    """Format francais pour les messages : 1600.0 -> '1 600', 113.6 -> '113,6'.
+    Sans decimales imposees : au plus max_decimales, zeros inutiles retires
+    (1.4 avec max_decimales=3 -> '1,4', et non '1,400' qu'on lirait 'mille
+    quatre cents' ; 0.008 -> '0,008')."""
+    if x is None:
+        return "—"
+    if decimales is not None:
+        return _nombre(x, decimales)
+    s = _nombre(x, max_decimales)
+    return s.rstrip("0").rstrip(",") if "," in s else s
+
+
+def fr_signe(x, decimales=None):
+    """'+608', '-4,4' : signe explicite pour un ecart."""
+    return ("+" if x > 0 else "") + fr(x, decimales)
+
+
 def _nombre(x, decimales):
     """Espace comme separateur de milliers, virgule decimale : lecture tunisienne."""
     s = f"{x:,.{decimales}f}".replace(",", " ").replace(".", ",")

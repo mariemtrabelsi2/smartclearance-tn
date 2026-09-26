@@ -40,6 +40,7 @@ from agents import registre as agent_registre
 from agents import redaction
 from agents import apprentissage
 from agents import nomenclature
+from agents import libelles
 from agents.devises import fmt_tnd, vers_tnd, MENTION_TAUX, SOURCE_TAUX
 
 PARALLELE = os.environ.get("SMARTCLEARANCE_PARALLELE", "0").strip() == "1"
@@ -71,38 +72,38 @@ SEUIL_PHYSIQUE = 65
 PLAFOND_PROFIL = 40
 
 PIECES = {
-    "ecart_quantite": ["contrat commercial", "liste de colisage rectifiee"],
-    "ecart_poids": ["ticket de pesee", "liste de colisage rectifiee"],
-    "ecart_valeur": ["preuve de paiement (avis SWIFT, releve bancaire)", "contrat commercial"],
-    "ecart_origine": ["certificat d'origine"],
-    "erreur_arithmetique": ["facture commerciale rectifiee"],
-    "ecart_conteneur": ["connaissement original"],
-    "ecart_reference": ["facture commerciale originale"],
-    "poids_invraisemblable": ["fiche technique du produit", "ticket de pesee"],
-    "designation_vs_sh": ["fiche technique du produit", "catalogue fournisseur"],
-    "designation_vague": ["fiche technique du produit", "designation detaillee (marque, modele, reference)"],
-    "sous_evaluation_via_reclassement": ["fiche technique du produit", "contrat commercial",
-                                         "preuve de paiement (avis SWIFT, releve bancaire)"],
-    "saisie_douteuse": ["piece originale (verification de la saisie)"],
-    "code_sh_inexistant": ["declaration rectifiee (code SH valide)", "fiche technique du produit"],
-    "reference_facture_dupliquee": ["facture commerciale originale",
-                                    "declaration precedente couverte par la meme facture"],
-    "ecart_origine_certificat": ["certificat d'origine original", "preuve d'origine du fabricant"],
-    "autorite_emettrice_incoherente": ["certificat d'origine original",
-                                       "verification aupres de l'autorite emettrice"],
-    "ecart_exportateur": ["contrat commercial", "justification du circuit commercial (triangulation)"],
-    "anciennete_importateur": ["extrait du registre de commerce"],
-    "origine_juridiction_surveillee": ["certificat d'origine", "justificatif du circuit de paiement"],
-    "fournisseur_inconnu": ["contrat commercial", "coordonnees et registre du fournisseur"],
-    "changement_secteur": ["justification de la nouvelle activite (registre de commerce, agrement)"],
-    "derive_prix": ["factures d'achats anterieurs", "justification de l'evolution des prix"],
-    "fournisseur_partage": ["contrat commercial", "preuve de paiement (avis SWIFT, releve bancaire)"],
-    "sous_evaluation_justifiee": ["preuve de paiement (avis SWIFT, releve bancaire)",
-                                  "original signe du document de remise"],
-    "sous_evaluation_justificatif_incoherent": ["preuve de paiement (avis SWIFT, releve bancaire)",
-                                                "contrat commercial", "factures d'achats anterieurs"],
-    "sous_evaluation": ["contrat commercial", "preuve de paiement (avis SWIFT, releve bancaire)",
-                        "justification de remise", "factures d'achats anterieurs"],
+    "ecart_quantite": ["Contrat commercial", "Liste de colisage rectifiée"],
+    "ecart_poids": ["Ticket de pesée", "Liste de colisage rectifiée"],
+    "ecart_valeur": ["Preuve de paiement (avis SWIFT, relevé bancaire)", "Contrat commercial"],
+    "ecart_origine": ["Certificat d'origine"],
+    "erreur_arithmetique": ["Facture commerciale rectifiée"],
+    "ecart_conteneur": ["Connaissement original"],
+    "ecart_reference": ["Facture commerciale originale"],
+    "poids_invraisemblable": ["Fiche technique du produit", "Ticket de pesée"],
+    "designation_vs_sh": ["Fiche technique du produit", "Catalogue fournisseur"],
+    "designation_vague": ["Fiche technique du produit", "Désignation détaillée (marque, modèle, référence)"],
+    "sous_evaluation_via_reclassement": ["Fiche technique du produit", "Contrat commercial",
+                                         "Preuve de paiement (avis SWIFT, relevé bancaire)"],
+    "saisie_douteuse": ["Pièce originale (vérification de la saisie)"],
+    "code_sh_inexistant": ["Déclaration rectifiée (code SH valide)", "Fiche technique du produit"],
+    "reference_facture_dupliquee": ["Facture commerciale originale",
+                                    "Déclaration précédente couverte par la même facture"],
+    "ecart_origine_certificat": ["Certificat d'origine original", "Preuve d'origine du fabricant"],
+    "autorite_emettrice_incoherente": ["Certificat d'origine original",
+                                       "Vérification auprès de l'autorité émettrice"],
+    "ecart_exportateur": ["Contrat commercial", "Justification du circuit commercial (triangulation)"],
+    "anciennete_importateur": ["Extrait du registre de commerce"],
+    "origine_juridiction_surveillee": ["Certificat d'origine", "Justificatif du circuit de paiement"],
+    "fournisseur_inconnu": ["Contrat commercial", "Coordonnées et registre du fournisseur"],
+    "changement_secteur": ["Justification de la nouvelle activité (registre de commerce, agrément)"],
+    "derive_prix": ["Factures d'achats antérieurs", "Justification de l'évolution des prix"],
+    "fournisseur_partage": ["Contrat commercial", "Preuve de paiement (avis SWIFT, relevé bancaire)"],
+    "sous_evaluation_justifiee": ["Preuve de paiement (avis SWIFT, relevé bancaire)",
+                                  "Original signé du document de remise"],
+    "sous_evaluation_justificatif_incoherent": ["Preuve de paiement (avis SWIFT, relevé bancaire)",
+                                                "Contrat commercial", "Factures d'achats antérieurs"],
+    "sous_evaluation": ["Contrat commercial", "Preuve de paiement (avis SWIFT, relevé bancaire)",
+                        "Justification de remise", "Factures d'achats antérieurs"],
 }
 
 
@@ -161,7 +162,7 @@ def _prefixe_partiel(non_lus):
     autres = [n for n in non_lus if not _est_reference_prix(n) and n not in NON_LUS_INFORMATIFS]
     if not autres:
         return ""
-    return "Analyse partielle : éléments non lus : " + ", ".join(autres) + ". "
+    return "Analyse partielle : éléments non lus : " + ", ".join(libelles.non_lu(n) for n in autres) + ". "
 
 
 def reference_prix(rapports):
@@ -219,7 +220,7 @@ def synthetiser(rapports: list) -> dict:
 
     if alertes:
         n1 = sum(1 for a in alertes if a.niveau == NIVEAU_CONTRADICTION)
-        phrase1 = (f"Score de doute {score}/100 ({reco.replace('_', ' ').lower()}) : "
+        phrase1 = (f"Score de doute {score}/100 ({libelles.recommandation(reco)}) : "
                    f"{len(alertes)} alerte(s) dont {n1} contradiction(s) entre documents.")
         # On cite le message avant la mention OMC : les chiffres suffisent ici.
         cites = [a.message.split(" Motif de doute")[0] for a in alertes[:2]]
@@ -296,7 +297,7 @@ def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=Tru
                            "designation_DDM": r1.donnees["ddm"].get("designation")}
     v = r1.donnees["ddm"].get("valeur_cif_usd")
     synthese["valeur_declaree"] = {"usd": v, "tnd": round(vers_tnd(v)) if v else None,
-                                   "libelle": f"Valeur declaree : {fmt_tnd(v)}",
+                                   "libelle": f"Valeur déclarée : {fmt_tnd(v)}",
                                    "taux": MENTION_TAUX, "source_taux": SOURCE_TAUX}
 
     # Redaction : APRES que score, recommandation et alertes sont figes. Le LLM

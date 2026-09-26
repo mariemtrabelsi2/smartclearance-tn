@@ -41,7 +41,7 @@ def controles_saisie(ddm, docs, details, date_reference):
     for num, ou in vus.items():
         defaut = verifier_conteneur(num)
         if defaut:
-            constats.append((f"Numero de conteneur {num} non conforme a la norme ISO 6346 "
+            constats.append((f"Numéro de conteneur {num} non conforme à la norme ISO 6346 "
                              f"({defaut['motif']}) : erreur de saisie possible.",
                              {**defaut, "documents": ou},
                              "numero de conteneur : " + " / ".join(ou)))
@@ -55,14 +55,14 @@ def controles_saisie(ddm, docs, details, date_reference):
     d_fac = lire_date(docs["facture"].get("date"))
     d_cer = lire_date((docs.get("certificat") or {}).get("date_emission"))
     if d_fac and d_cer and d_fac > d_cer:
-        constats.append((f"La facture ({d_fac}) est datee apres le certificat d'origine ({d_cer}) "
+        constats.append((f"La facture ({d_fac}) est datée après le certificat d'origine ({d_cer}) "
                          f"qui s'y rapporte.",
                          {"date_facture": d_fac.isoformat(), "date_certificat": d_cer.isoformat(),
                           "motif": "facture posterieure au certificat"},
                          "facture : ligne 'Date' / certificat : ligne 'Date of issue'"))
     for nom, d in (("facture", d_fac), ("certificat d'origine", d_cer)):
         if d and d > date_reference:
-            constats.append((f"Date du document '{nom}' ({d}) posterieure a la date d'analyse "
+            constats.append((f"Date du document '{nom}' ({d}) postérieure à la date d'analyse "
                              f"({date_reference}).",
                              {"document": nom, "date_lue": d.isoformat(),
                               "date_analyse": date_reference.isoformat(), "motif": "date dans le futur"},
@@ -73,8 +73,8 @@ def controles_saisie(ddm, docs, details, date_reference):
         for champ, d in champs.items():
             if d.get("lecture_alternative") is not None:
                 constats.append((f"Valeur '{d['brut']}' illisible comme nombre ({doc}, {champ}) : "
-                                 f"confusion de caracteres probable. Lecture alternative proposee "
-                                 f"{d['lecture_alternative']}, NON substituee.",
+                                 f"confusion de caractères probable. Lecture alternative proposée "
+                                 f"{d['lecture_alternative']}, NON substituée.",
                                  {"document": doc, "champ": champ, "brut": d["brut"],
                                   "lecture_alternative": d["lecture_alternative"],
                                   "motif": "confusion de caracteres probable (O/0, l/1, I/1, S/5)"},

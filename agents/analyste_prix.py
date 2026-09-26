@@ -10,7 +10,7 @@ from pathlib import Path
 
 from agents import nomenclature, stockage
 from agents.base import RapportAgent, NIVEAU_ECART
-from agents.devises import conversion, fmt_tnd, fmt_tnd_kg, nombre_fr, vers_tnd, MENTION_TAUX
+from agents.devises import conversion, fmt_tnd, fmt_tnd_kg, nombre_fr, fr, fr_signe, vers_tnd, MENTION_TAUX
 
 RACINE = Path(__file__).resolve().parent.parent
 BAREME_DEFAUT = RACINE / "bareme.csv"
@@ -39,8 +39,8 @@ PREFIXE_SIMILAIRES = ("Aucune marchandise identique en base. Référence établi
                       "hiérarchie des articles 2 et 3 de l'Accord OMC sur l'évaluation "
                       "en douane.")
 
-MENTION_OMC = ("Motif de doute au sens de la Decision 6.1 de l'Accord OMC sur "
-               "l'evaluation en douane. L'importateur est invite a justifier.")
+MENTION_OMC = ("Motif de doute au sens de la Décision 6.1 de l'Accord OMC sur "
+               "l'évaluation en douane. L'importateur est invité à justifier.")
 
 # Amorcage : imports tunisiens 2023, UN Comtrade, USD/kg.
 AMORCE = [
@@ -98,21 +98,21 @@ def _qualifier_par_qualite(r, q):
             # Une designation a la fois 'neuve d'origine' et 'reconditionnee' est
             # une incoherence en soi : on le dit, sans ajuster dans un sens ou l'autre.
             famille, effet, termes = "contradictoire", 1.0, degr + valo
-            ajout = ("La designation contient a la fois une mention valorisante "
-                     f"({', '.join(valo)}) et une mention degradante ({', '.join(degr)}).")
+            ajout = ("La désignation contient à la fois une mention valorisante "
+                     f"({', '.join(valo)}) et une mention dégradante ({', '.join(degr)}).")
         elif degr:
             famille, effet, termes = "degradante", FACTEUR_DEGRADANTE, degr
             qualif = next((v for p, v in QUALITE_DEGRADANTE.items()
-                           if re.fullmatch(p, degr[0])), "de moindre qualite")
-            ajout = (f"La designation mentionne '{degr[0]}'. Une marchandise {qualif} peut "
-                     "legitimement valoir moins que la reference, qui porte sur la position "
-                     "tarifaire sans distinction de gamme. L'inspecteur verifiera la coherence "
-                     "entre cette mention et l'etat reel de la marchandise.")
+                           if re.fullmatch(p, degr[0])), "de moindre qualité")
+            ajout = (f"La désignation mentionne '{degr[0]}'. Une marchandise {qualif} peut "
+                     "légitimement valoir moins que la référence, qui porte sur la position "
+                     "tarifaire sans distinction de gamme. L'inspecteur vérifiera la cohérence "
+                     "entre cette mention et l'état réel de la marchandise.")
         else:
             famille, effet, termes = "valorisante", FACTEUR_VALORISANTE, valo
             ecart = a.preuve.get("ecart_pct")
-            ajout = (f"La designation annonce une marchandise neuve et d'origine ou de premier "
-                     f"choix ('{', '.join(valo)}'), ce qui rend l'ecart de {ecart:.0f} % "
+            ajout = (f"La désignation annonce une marchandise neuve et d'origine ou de premier "
+                     f"choix ('{', '.join(valo)}'), ce qui rend l'écart de {ecart:.0f} % "
                      "moins plausible.")
         a.gravite = min(GRAVITE_MAX, round(a.gravite * effet))
         a.preuve.update({"qualite_detectee": ", ".join(termes), "famille": famille,
@@ -120,8 +120,8 @@ def _qualifier_par_qualite(r, q):
         a.message = a.message.replace(f" {MENTION_OMC}", f" {ajout} {MENTION_OMC}")
 
 
-MOIS_FR = ["", "janvier", "fevrier", "mars", "avril", "mai", "juin", "juillet", "aout",
-           "septembre", "octobre", "novembre", "decembre"]
+MOIS_FR = ["", "janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+           "septembre", "octobre", "novembre", "décembre"]
 
 
 def _saison(sh, pays, mois):
@@ -164,7 +164,7 @@ def _rapprocher_justificatif(r, texte, prix_kg):
     du seuil de la reference utilisee). Sinon la remise est un pretexte possible."""
     bas = texte.lower()
     if not any(re.search(rf"\b{t}\b", bas) for t in TERMES_REMISE):
-        r.non_lus.append("justificatif.pdf : aucun terme de remise reconnu")
+        r.non_lus.append("Justificatif commercial : aucun terme de remise reconnu")
         return
     lignes = [" ".join(l.split()) for l in texte.splitlines() if l.strip()]
     type_doc = lignes[0] if lignes else "document joint"
@@ -179,15 +179,15 @@ def _rapprocher_justificatif(r, texte, prix_kg):
         a.preuve.update({"justificatif": type_doc,
                          "remise_annoncee": f"{remise:g}%" if remise is not None else None,
                          "ecart_constate": f"{ecart}%"})
-        entete = (f"Ecart de prix de {ecart:.0f} %. Un document justificatif est joint "
-                  f"({type_doc}). L'inspecteur doit verifier la concordance entre la remise "
-                  f"annoncee et le reglement effectif.")
+        entete = (f"Écart de prix de {ecart:.0f} %. Un document justificatif est joint "
+                  f"({type_doc}). L'inspecteur doit vérifier la concordance entre la remise "
+                  f"annoncée et le règlement effectif.")
         if remise is None:
             # Remise non chiffree : impossible de verifier qu'elle couvre l'ecart,
             # donc aucune attenuation.
             a.preuve["coherent"] = None
             a.type = "sous_evaluation_justifiee"
-            a.message = f"{entete} La remise n'est pas chiffree : concordance invérifiable. {MENTION_OMC}"
+            a.message = f"{entete} La remise n'est pas chiffrée : concordance invérifiable. {MENTION_OMC}"
             continue
         avant_remise = prix_kg / (1 - remise / 100)
         residuel = 100 * (avant_remise - ref) / ref
@@ -200,9 +200,9 @@ def _rapprocher_justificatif(r, texte, prix_kg):
         else:
             a.type = "sous_evaluation_justificatif_incoherent"
             a.gravite = min(GRAVITE_MAX, round(a.gravite * FACTEUR_INCOHERENT))
-            a.message = (f"La remise annoncee ({remise:g}%) n'explique pas l'ecart constate "
-                         f"({ecart:.0f}%) : meme avant remise, le prix resterait a "
-                         f"{residuel:+.0f} % de la reference. {entete} {MENTION_OMC}")
+            a.message = (f"La remise annoncée ({fr(remise)} %) n'explique pas l'écart constaté "
+                         f"({ecart:.0f} %) : même avant remise, le prix resterait à "
+                         f"{residuel:+.0f} % de la référence. {entete} {MENTION_OMC}")
 
 
 def analyser(donnees_ddm: dict, bareme_csv=None,
@@ -223,8 +223,8 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
         # bareme. Jamais l'inverse. Devise inconnue : pas de comparaison de prix.
         conv = conversion(donnees_ddm["valeur_cif"], donnees_ddm.get("devise"))
         if conv is None:
-            r.non_lus.append(f"DDM.devise illisible ou inconnue ({donnees_ddm.get('devise')}) : "
-                             "prix non compare au bareme")
+            r.non_lus.append(f"Devise de la DDM illisible ou inconnue ({donnees_ddm.get('devise')}) : "
+                             "prix non comparé au barème")
             r.statut = "INCOMPLET"
             return r
         valeur = conv["valeur_usd"]
@@ -232,7 +232,7 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
         conv["devise_declaration"] = conv.pop("devise_facture")
 
     if not valeur or not poids:
-        r.non_lus.append("DDM.valeur_cif_usd ou DDM.poids_net_kg : prix au kilo incalculable")
+        r.non_lus.append("Valeur CIF ou poids net absent de la DDM : prix au kilo incalculable")
         r.statut = "INCOMPLET"
         return r
 
@@ -243,10 +243,10 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
     incoterm = str(donnees_ddm.get("incoterm") or "").strip().upper()
     facteur = FACTEURS_CIF.get(incoterm)
     if not incoterm:
-        r.non_lus.append("DDM.incoterm illisible : prix compare sans ajustement CIF")
+        r.non_lus.append("Incoterm illisible sur la DDM : prix comparé sans ajustement CIF")
         facteur = 1.0
     elif facteur is None:
-        r.non_lus.append(f"incoterm {incoterm} : aucun facteur d'ajustement CIF defini, prix compare tel quel")
+        r.non_lus.append(f"Incoterm {incoterm} : aucun facteur d'ajustement CIF défini, prix comparé tel quel")
         facteur = 1.0
     prix_kg = prix_brut * facteur
     ajustement = None
@@ -289,7 +289,7 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
             r.ajouter(
                 type="sous_evaluation", niveau=NIVEAU_ECART,
                 gravite=round(min(GRAVITE_MAX, abs(ecart)) * ref["facteur"]),
-                message=(f"{ref['prefixe']}Prix declare {fmt_tnd_kg(prix_kg)} contre une reference de "
+                message=(f"{ref['prefixe']}Prix déclaré {fmt_tnd_kg(prix_kg)} contre une référence de "
                          f"{fmt_tnd_kg(mediane)} ({ecart:+.0f} %). {MENTION_OMC}"),
                 preuve={"prix_kg_declare": round(prix_kg, 2), "prix_kg_reference": mediane,
                         "ecart_pct": round(ecart, 1), "seuil_pct": ref["seuil"],
@@ -303,8 +303,8 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
             if saison:
                 a = r.alertes[-1]
                 a.preuve.update(saison)
-                a.message = (f"Reference ajustee pour le mois de {MOIS_FR[int(saison['mois'])]} "
-                             f"(indice {nombre_fr(saison['indice_saisonnier'])}, etabli sur "
+                a.message = (f"Référence ajustée pour le mois de {MOIS_FR[int(saison['mois'])]} "
+                             f"(indice {nombre_fr(saison['indice_saisonnier'])}, établi sur "
                              f"{saison['nb_observations_indice']} observations mensuelles). " + a.message)
         statut_declare = "REFERENCE_PARTIELLE" if ref["type"] == "similaires" else None
 
@@ -328,10 +328,10 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
                     # Deux anomalies independantes qui se renforcent : on part de
                     # l'ecart et on le majore, sans depasser le plafond d'une hypothese.
                     gravite=min(GRAVITE_MAX, round(abs(ecart2)) + BONUS_RECLASSEMENT),
-                    message=("Le code declare ne correspond pas a la designation. Verifie avec "
-                             "le code correspondant a la marchandise reellement decrite, le prix "
-                             f"presente un ecart de {ecart2:.0f} %. Le classement errone peut "
-                             f"masquer une sous-evaluation. {MENTION_OMC}"),
+                    message=("Le code déclaré ne correspond pas à la désignation. Vérifié avec "
+                             "le code correspondant à la marchandise réellement décrite, le prix "
+                             f"présente un écart de {ecart2:.0f} %. Le classement erroné peut "
+                             f"masquer une sous-évaluation. {MENTION_OMC}"),
                     preuve={"code_declare": sh, "code_suggere": suggere,
                             "designation_officielle_declare": nomenclature.designation(sh),
                             "designation_officielle_suggere": nomenclature.designation(suggere),
@@ -352,8 +352,8 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
     if ajustement:
         for a in r.alertes:
             a.preuve.update(ajustement)
-            a.message = (f"Prix ramene en CIF ({incoterm} x {facteur:g}) : "
-                         f"{fmt_tnd_kg(prix_brut)} -> {fmt_tnd_kg(prix_kg)}. " + a.message)
+            a.message = (f"Prix ramené en CIF ({incoterm} x {fr(facteur)}) : "
+                         f"{fmt_tnd_kg(prix_brut)} → {fmt_tnd_kg(prix_kg)}. " + a.message)
 
     if conv and conv["devise_declaration"] != "USD":
         for a in r.alertes:
@@ -368,7 +368,7 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
             a.preuve.update({"valeur_non_declaree_tnd": round(vers_tnd(manque_usd), -2),
                              "base": "ecart de prix au kilo applique au poids net declare",
                              "taux": MENTION_TAUX})
-            estimation = (f"Valeur non declaree estimee : {fmt_tnd(round(manque_usd, -2))} "
+            estimation = (f"Valeur non déclarée estimée : {fmt_tnd(round(manque_usd, -2))} "
                           f"(estimation, {MENTION_TAUX}).")
             a.message = a.message.replace(f" {MENTION_OMC}", f" {estimation} {MENTION_OMC}")
 
