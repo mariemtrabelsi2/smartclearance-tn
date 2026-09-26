@@ -5,6 +5,7 @@ Un outil qui crie sur tout finit ignore par les inspecteurs.
 """
 import json
 import sys
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 
@@ -20,14 +21,22 @@ EQUIVALENCES = {"sous_evaluation_via_reclassement": "sous_evaluation",
                 "sous_evaluation_justificatif_incoherent": "sous_evaluation"}
 
 
-def evaluer(dossiers_dir=RACINE / "dossiers"):
+def evaluer(dossiers_dir=RACINE / "dossiers", registre_csv=None):
+    """registre_csv : registre des references de facture. Par defaut, un fichier
+    temporaire VIDE a chaque mesure : sinon le registre garde les references de
+    l'execution precedente et la deuxieme mesure alerte sur tous les dossiers.
+    Le registre reel de l'interface (donnees/references_vues.csv) n'est pas touche."""
     verite = json.loads((Path(dossiers_dir) / "verite_terrain.json").read_text(encoding="utf-8"))
     par_type = defaultdict(lambda: {"posees": 0, "trouvees": 0, "emises": 0, "justes": 0})
     detail, propres = [], []
     posees = trouvees = emises = justes = 0
+    if registre_csv is None:
+        registre_csv = Path(tempfile.mkdtemp(prefix="registre_mesure_")) / "references_vues.csv"
 
+    # Ordre des dossiers = ordre d'arrivee : c'est le SECOND dossier d'une
+    # reference partagee qui doit alerter, comme le pose la verite terrain.
     for d in verite["dossiers"]:
-        s = analyser_dossier(Path(dossiers_dir) / d["dossier"])
+        s = analyser_dossier(Path(dossiers_dir) / d["dossier"], registre_csv=registre_csv)
         attendus = [a["type"] for a in d["anomalies"]]
         # Les alertes a gravite 0 sont informatives : elles ne comptent pas comme emises.
         # Rappel et precision portent sur le dossier : la verite terrain ne
