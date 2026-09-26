@@ -14,6 +14,8 @@ import json
 import os
 import re
 import unicodedata
+import time
+import urllib.error
 import urllib.request
 from datetime import datetime
 from pathlib import Path
@@ -28,8 +30,10 @@ try:
 except ImportError:          # sans python-dotenv, seule une variable d'environnement compte
     pass
 
-MODELE = os.environ.get("SMARTCLEARANCE_MODELE", "claude-opus-5")
-URL_API = "https://api.anthropic.com/v1/messages"
+# Modele : SMARTCLEARANCE_MODELE, sinon le defaut du fournisseur dont la cle est presente.
+MODELES_DEFAUT = {"gemini": "gemini-2.5-flash", "anthropic": "claude-opus-5"}
+URL_GEMINI = "https://generativelanguage.googleapis.com/v1beta/models/{modele}:generateContent"
+URL_ANTHROPIC = "https://api.anthropic.com/v1/messages"
 DELAI_S = 5                  # une seule tentative, pas de nouvel essai
 
 # Consigne transmise mot pour mot.
@@ -149,43 +153,111 @@ def journaliser_rejet(synthese, motif, texte):
     JOURNAL_REJETS.parent.mkdir(parents=True, exist_ok=True)
     with open(JOURNAL_REJETS, "a", encoding="utf-8") as f:
         f.write(json.dumps({"horodatage": datetime.now().isoformat(timespec="seconds"),
-                            "numero_ddm": synthese.get("numero_ddm"), "modele": MODELE,
+                            "numero_ddm": synthese.get("numero_ddm"), "modele": modele(),
                             "motif": motif, "texte_rejete": (texte or "")[:1000]},
                            ensure_ascii=False) + "\n")
 
 
 # ------------------------------------------------------------ appel au modele
 
+def fournisseur():
+    """Choisi selon la cle presente. Si les deux sont la, Gemini l'emporte :
+    c'est la cle effectivement exercee."""
+    if os.environ.get("GEMINI_API_KEY"):
+        return "gemini"
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return "anthropic"
+    return None
+
+
+def modele():
+    return os.environ.get("SMARTCLEARANCE_MODELE") or MODELES_DEFAUT.get(fournisseur(), "aucun")
+
+
 def cle_api():
-    return os.environ.get("ANTHROPIC_API_KEY") or None
+    return {"gemini": os.environ.get("GEMINI_API_KEY"),
+            "anthropic": os.environ.get("ANTHROPIC_API_KEY")}.get(fournisseur())
 
 
 def appeler_modele(entree):
-    """-> (texte | None, motif d'echec | None). Une seule tentative, 5 s."""
-    cle = cle_api()
-    if not cle:
+    """-> (texte | None, motif d'echec | None). Une seule tentative, 5 s.
+    Le texte renvoye passe ensuite par le MEME controle de sortie, quel que
+    soit le fournisseur."""
+    f = fournisseur()
+    if f is None:
         return None, "pas de cle API"
+    message = "Donnees du dossier (JSON) :\n" + json.dumps(entree, ensure_ascii=False)
+    return (_appeler_gemini if f == "gemini" else _appeler_anthropic)(message)
+
+
+def _poster(url, corps, entetes):
+    """-> (reponse JSON | None, motif d'echec | None)."""
+    requete = urllib.request.Request(url, data=json.dumps(corps).encode("utf-8"), method="POST",
+                                     headers={**entetes, "content-type": "application/json"})
+    try:
+        with urllib.request.urlopen(requete, timeout=DELAI_S) as rep:
+            return json.loads(rep.read().decode("utf-8")), None
+    except urllib.error.HTTPError as e:     # quota, modele inconnu, cle refusee...
+        return None, f"appel impossible (HTTP {e.code})"
+    except Exception as e:                  # reseau absent, delai depasse, reponse illisible
+        return None, f"appel impossible ({type(e).__name__})"
+
+
+# Raisons d'arret Gemini qui valent un refus : on ne garde pas un texte bloque.
+ARRETS_REFUS = {"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "RECITATION", "OTHER"}
+
+
+def _appeler_gemini(message):
+    m = modele()
     corps = {
-        "model": MODELE,
+        "system_instruction": {"parts": [{"text": CONSIGNE}]},
+        "contents": [{"role": "user", "parts": [{"text": message}]}],
+        "generationConfig": {"maxOutputTokens": 1024},
+    }
+    if "2.5" in m:
+        # Gemini 2.5 reflechit par defaut : sans cela, 5 s ne suffisent pas
+        # pour 3 a 5 phrases.
+        corps["generationConfig"]["thinkingConfig"] = {"thinkingBudget": 0}
+    # La cle voyage dans l'en-tete, jamais dans l'URL : une URL finit dans les
+    # messages d'erreur et les journaux.
+    reponse, echec = _poster(URL_GEMINI.format(modele=m), corps,
+                             {"x-goog-api-key": os.environ["GEMINI_API_KEY"]})
+    if echec:
+        return None, echec
+    if (reponse.get("promptFeedback") or {}).get("blockReason"):
+        return None, "refus du modele"
+    candidats = reponse.get("candidates") or []
+    if not candidats:
+        return "", None                     # vide : le controle de sortie le rejettera
+    c = candidats[0]
+    if c.get("finishReason") in ARRETS_REFUS:
+        return None, "refus du modele"
+    if c.get("finishReason") == "MAX_TOKENS":
+        # Un texte coupe au milieu d'une phrase ne doit pas atteindre l'inspecteur.
+        return None, "reponse tronquee"
+    # Les parties 'thought' (raisonnement) ne font pas partie de la note.
+    texte = "".join(p.get("text", "") for p in (c.get("content") or {}).get("parts", [])
+                    if not p.get("thought"))
+    return texte.strip(), None
+
+
+def _appeler_anthropic(message):
+    corps = {
+        "model": modele(),
         "max_tokens": 1024,
         # Tache courte : effort bas pour tenir dans le delai de 5 s.
         "output_config": {"effort": "low"},
         # Si le modele decline, le serveur relance sur un modele de repli.
         "fallbacks": "default",
         "system": CONSIGNE,
-        "messages": [{"role": "user", "content":
-                      "Donnees du dossier (JSON) :\n" + json.dumps(entree, ensure_ascii=False)}],
+        "messages": [{"role": "user", "content": message}],
     }
-    requete = urllib.request.Request(
-        URL_API, data=json.dumps(corps).encode("utf-8"), method="POST",
-        headers={"x-api-key": cle, "anthropic-version": "2023-06-01",
-                 "anthropic-beta": "server-side-fallback-2026-07-01",
-                 "content-type": "application/json"})
-    try:
-        with urllib.request.urlopen(requete, timeout=DELAI_S) as rep:
-            reponse = json.loads(rep.read().decode("utf-8"))
-    except Exception as e:          # reseau absent, delai depasse, erreur HTTP
-        return None, f"appel impossible ({type(e).__name__})"
+    reponse, echec = _poster(URL_ANTHROPIC, corps,
+                             {"x-api-key": os.environ["ANTHROPIC_API_KEY"],
+                              "anthropic-version": "2023-06-01",
+                              "anthropic-beta": "server-side-fallback-2026-07-01"})
+    if echec:
+        return None, echec
     if reponse.get("stop_reason") == "refusal":
         return None, "refus du modele"
     texte = "".join(b.get("text", "") for b in reponse.get("content", []) if b.get("type") == "text")
@@ -224,13 +296,15 @@ def rediger_explication(synthese, autoriser_reseau=False, cache=None):
     if not autoriser_reseau:
         return repli, "deterministe", {"motif": "hors cache, aucun appel reseau"}
 
+    t0 = time.perf_counter()
     texte, echec = appeler_modele(entree)
+    duree = round(time.perf_counter() - t0, 3)
     if echec:
-        return repli, "deterministe", {"motif": echec}
+        return repli, "deterministe", {"motif": echec, "duree_s": duree}
     motif = controler(texte, entree)
     if motif:
         journaliser_rejet(synthese, motif, texte)
-        return repli, "deterministe", {"motif": f"rejet : {motif}"}
-    cache[cle] = {"texte": texte, "modele": MODELE,
+        return repli, "deterministe", {"motif": f"rejet : {motif}", "duree_s": duree}
+    cache[cle] = {"texte": texte, "modele": modele(),
                   "genere_le": datetime.now().isoformat(timespec="seconds")}
-    return texte, "llm", {"modele": MODELE, "cache": False}
+    return texte, "llm", {"modele": modele(), "cache": False, "duree_s": duree}
