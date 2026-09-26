@@ -401,12 +401,24 @@ def main():
     for t, i in zip(ANOMALIES_CERTIFICAT, rng_co.sample(anormaux, len(ANOMALIES_CERTIFICAT))):
         cibles.setdefault(i, []).append(t)
 
+    # Une facture qui couvre deux declarations : un cas par jeu, sur un dossier
+    # deja anormal. C'est le dossier le plus RECENT de la paire qui porte
+    # l'anomalie (le premier arrive est legitime au moment ou il est vu).
+    # Generateur separe : la suite aleatoire principale ne bouge pas.
+    rng_dup = random.Random(graine * 1000 + 29)
+    cible_dup = rng_dup.choice([i for i in anormaux if i >= 2])
+    source_dup = rng_dup.randint(1, cible_dup - 1)
+
     verite, total_anos, n_justif = [], 0, 0
     for i, quelles in enumerate(plan, start=1):
         d = construire(i)
         posees = injecter(d, quelles)
         co = certificat_initial(d, rng_co)
         posees += injecter_certificat(co, d, cibles.get(i, []), rng_co)
+        if i == cible_dup:
+            d["ref_facture"] = f"INV-2026-{1000 + source_dup}"
+            posees.append({"type": "reference_facture_dupliquee", "detail":
+                f"facture {d['ref_facture']} deja utilisee pour dossier_{source_dup:02d}"})
         total_anos += len(posees)
 
         rep = os.path.join(base, f"dossier_{i:02d}")
@@ -448,7 +460,7 @@ def main():
         for a in v["anomalies"]:
             compte[a["type"]] = compte.get(a["type"], 0) + 1
     print("Repartition par type :")
-    for t in ANOMALIES + ANOMALIES_CERTIFICAT:
+    for t in ANOMALIES + ANOMALIES_CERTIFICAT + ["reference_facture_dupliquee"]:
         print(f"  {t:<24} {compte.get(t, 0)}")
     print(f"\nVerite terrain : {base}/verite_terrain.json")
 

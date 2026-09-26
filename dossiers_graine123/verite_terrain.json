@@ -1,6 +1,6 @@
 {
   "nb_dossiers": 20,
-  "nb_anomalies_posees": 22,
+  "nb_anomalies_posees": 23,
   "dossiers": [
     {
       "dossier": "dossier_01",
@@ -138,7 +138,7 @@
     {
       "dossier": "dossier_11",
       "propre": false,
-      "nb_anomalies": 2,
+      "nb_anomalies": 3,
       "anomalies": [
         {
           "type": "ecart_quantite",
@@ -147,6 +147,10 @@
         {
           "type": "erreur_arithmetique",
           "detail": "50 x 133.0 != 5320.0 sur la facture"
+        },
+        {
+          "type": "reference_facture_dupliquee",
+          "detail": "facture INV-2026-1007 deja utilisee pour dossier_07"
         }
       ],
       "justification_presente": false

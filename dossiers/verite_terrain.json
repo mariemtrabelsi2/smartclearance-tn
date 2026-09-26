@@ -1,6 +1,6 @@
 {
   "nb_dossiers": 20,
-  "nb_anomalies_posees": 22,
+  "nb_anomalies_posees": 23,
   "dossiers": [
     {
       "dossier": "dossier_01",
@@ -79,11 +79,15 @@
     {
       "dossier": "dossier_07",
       "propre": false,
-      "nb_anomalies": 1,
+      "nb_anomalies": 2,
       "anomalies": [
         {
           "type": "poids_invraisemblable",
           "detail": "0.008 kg par unite pour 'Smartphone 6.5 inch 128GB'"
+        },
+        {
+          "type": "reference_facture_dupliquee",
+          "detail": "facture INV-2026-1004 deja utilisee pour dossier_04"
         }
       ],
       "justification_presente": false

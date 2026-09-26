@@ -1,6 +1,6 @@
 {
   "nb_dossiers": 20,
-  "nb_anomalies_posees": 22,
+  "nb_anomalies_posees": 23,
   "dossiers": [
     {
       "dossier": "dossier_01",
@@ -40,7 +40,7 @@
     {
       "dossier": "dossier_04",
       "propre": false,
-      "nb_anomalies": 2,
+      "nb_anomalies": 3,
       "anomalies": [
         {
           "type": "sous_evaluation",
@@ -49,6 +49,10 @@
         {
           "type": "designation_vs_sh",
           "detail": "facture dit 'Smartphone 6.5 inch 128GB' mais SH declare 732690"
+        },
+        {
+          "type": "reference_facture_dupliquee",
+          "detail": "facture INV-2026-1002 deja utilisee pour dossier_02"
         }
       ],
       "justification_presente": true,
