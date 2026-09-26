@@ -1,14 +1,60 @@
 """Coordinateur : rassemble les rapports des agents et produit une recommandation pour l'inspecteur.
 
 Il ne tranche pas : il ordonne les doutes et dit quelles pieces reclamer.
+
+Graphe de dependances reel (ce n'est pas "4 agents en parallele") :
+
+                    [Agent 1 documentaire]
+          lit la DDM et les PDF ; produit la date et la reference de
+          facture, le code SH suggere, le texte du justificatif
+                /                 |                    \\
+               v                  v                     v
+      [Agent 2 prix]      [Agent 3 profileur]    [registre des references]
+      + foret d'isolation  (historique anterieur   (reference lue sur la
+      (code SH suggere,     a la date de facture)   facture, sa date)
+       justificatif)
+               \\                  |                    /
+                v                 v                   v
+                          [Coordinateur]
+
+Etage 1 : Agent 1, seul. C'est aussi l'essentiel du temps (lecture des PDF).
+Etage 2 : Agent 2, Agent 3 et registre ne dependent que de l'Agent 1, pas les
+          uns des autres : ils peuvent tourner en parallele (threads).
+Etage 3 : le coordinateur, qui consomme tout.
+
+Le lien Agent 1 -> Agent 2 (code SH suggere) est ce qui rend le systeme
+agentique : le prix est controle sous le code de la marchandise decrite.
+
+SMARTCLEARANCE_PARALLELE=1 execute l'etage 2 en threads (jamais en processus :
+chaque processus dupliquerait l'interpreteur, sur un poste qui est deja tombe
+a 653 Mo de memoire libre). Sequentiel par defaut : voir la mesure.
 """
 import json
+import os
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from agents.base import RapportAgent, NIVEAU_CONTRADICTION
 from agents import inspecteur_documentaire, analyste_prix, profileur, isolation
 from agents import registre as agent_registre
 from agents.devises import fmt_tnd, vers_tnd, MENTION_TAUX, SOURCE_TAUX
+
+PARALLELE = os.environ.get("SMARTCLEARANCE_PARALLELE", "0").strip() == "1"
+_EXECUTEUR = None
+
+
+def _executeur():
+    """Un seul pool, cree a la premiere analyse et reutilise : le recreer a
+    chaque dossier couterait plus que ce que le parallelisme fait gagner."""
+    global _EXECUTEUR
+    if _EXECUTEUR is None:
+        _EXECUTEUR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="etage2")
+    return _EXECUTEUR
+
+
+# Ordre des agents pour le tri deterministe des alertes.
+RANG_AGENT = {"Inspecteur documentaire": 0, "Analyste prix": 1, "Profileur": 2,
+              "Registre des references": 3}
 
 # Une contradiction entre documents est un fait ; un ecart de prix ou de
 # poids est une hypothese. D'ou le poids double du niveau 1.
@@ -148,8 +194,18 @@ def _convergence(alertes):
     return ""
 
 
+def _agent_de(alerte, rapports):
+    return next(r.agent for r in rapports if any(a is alerte for a in r.alertes))
+
+
 def synthetiser(rapports: list) -> dict:
-    alertes = [a for r in rapports for a in r.alertes if a.gravite > 0]
+    # Tri deterministe par agent avant le tri par poids : l'ordre ne depend
+    # jamais de l'ordre d'arrivee des branches paralleles. A l'interieur d'un
+    # agent, l'ordre est celui de son code (sequentiel, donc deja deterministe) ;
+    # un tri par niveau puis type le changerait pour des alertes a poids egal,
+    # et avec lui les alertes citees dans l'explication. Les deux tris sont stables.
+    alertes = sorted((a for r in rapports for a in r.alertes if a.gravite > 0),
+                     key=lambda a: RANG_AGENT.get(_agent_de(a, rapports), 99))
     alertes.sort(key=_poids, reverse=True)
     non_lus = list(dict.fromkeys(n for r in rapports for n in r.non_lus))
 
@@ -190,20 +246,36 @@ def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=Tru
     synthetise. Sources : None = source par defaut du stockage actif.
     registre : True = registre par defaut, un chemin = ce registre (mesures),
     False/None = registre desactive (rien n'est ecrit)."""
+    # Etage 1 : l'Agent 1 seul. Il lit la DDM et les PDF (l'essentiel du temps).
     r1 = inspecteur_documentaire.analyser(dossier)
-    # Premier lien entre agents : l'Agent 2 recoit ce que l'Agent 1 a etabli
-    # (notamment un code SH suggere quand la designation contredit la DDM).
-    r2 = analyste_prix.analyser(r1.donnees["ddm"], bareme_csv, r1.donnees)
-    # Signal secondaire : ne cree aucune alerte, majore au plus x1.15 une alerte
-    # de prix deja motivee par l'ecart a la reference.
-    isolation.confirmer(r2.alertes, r1.donnees["ddm"], historique_csv)
-    # Le profileur ne voit que l'historique anterieur a la date de la facture
-    # (la DDM de test n'a pas de date propre).
-    r3 = profileur.analyser(r1.donnees["ddm"], historique_csv, r1.donnees["facture"].get("date"))
-    rapports = [r1, r2, r3]
+    ddm, facture = r1.donnees["ddm"], r1.donnees["facture"]
+
+    def branche_prix():
+        # Premier lien entre agents : l'Agent 2 recoit ce que l'Agent 1 a etabli
+        # (notamment un code SH suggere quand la designation contredit la DDM).
+        r2 = analyste_prix.analyser(ddm, bareme_csv, r1.donnees)
+        # Signal secondaire : ne cree aucune alerte, majore au plus x1.15 une
+        # alerte de prix deja motivee par l'ecart a la reference.
+        isolation.confirmer(r2.alertes, ddm, historique_csv)
+        return r2
+
+    # Etage 2 : trois branches independantes entre elles, toutes nourries par
+    # l'Agent 1. Le profileur ne voit que l'historique anterieur a la date de
+    # la facture (la DDM de test n'a pas de date propre).
+    taches = {"prix": branche_prix,
+              "profil": lambda: profileur.analyser(ddm, historique_csv, facture.get("date"))}
     if registre:
         source = None if registre is True else registre
-        rapports.append(agent_registre.analyser(r1.donnees["ddm"], r1.donnees["facture"], source))
+        taches["registre"] = lambda: agent_registre.analyser(ddm, facture, source)
+
+    if PARALLELE:
+        futurs = {nom: _executeur().submit(f) for nom, f in taches.items()}
+        resultats = {nom: futur.result() for nom, futur in futurs.items()}
+    else:
+        resultats = {nom: f() for nom, f in taches.items()}
+
+    # Ordre FIXE des rapports, quel que soit l'ordre d'arrivee des branches.
+    rapports = [r1] + [resultats[nom] for nom in ("prix", "profil", "registre") if nom in resultats]
     synthese = synthetiser(rapports)
     synthese["numero_ddm"] = r1.donnees["ddm"].get("numero_ddm")
     synthese["normalisations"] = r1.donnees.get("normalisations", [])
