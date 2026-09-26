@@ -271,7 +271,10 @@ def construire(i):
         "ref_transport": f"BL{random.randint(100000,999999)}",
         "conteneur": conteneur_iso6346(f"{random.choice(['MSCU','TGHU','CMAU'])}{random.randint(1000000,9999999)}"),
         "navire": random.choice(["MSC ALTAIR", "CMA CGM TARIK", "MAERSK SIROCCO"]),
-        "date": f"2026-0{random.randint(1,9)}-{random.randint(10,28)}",
+        # Septembre ramene en aout, sans tirage supplementaire : avec le
+        # certificat emis jusqu'a 5 jours apres, les pieces etaient datees
+        # apres la demonstration (fin septembre 2026), donc "dans le futur".
+        "date": f"2026-0{min(random.randint(1,9), 8)}-{random.randint(10,28)}",
         "fournisseur": fo, "fournisseur_ville": ville, "importateur": imp,
         "port_chargement": PORTS[iso],
         "origine_transport": iso,
