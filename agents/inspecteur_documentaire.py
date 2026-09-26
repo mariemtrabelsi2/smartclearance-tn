@@ -26,9 +26,14 @@ RACINE = Path(__file__).resolve().parent.parent
 PRODUITS = [
     {"mots": ["passenger car", "voiture"], "libelle": "voiture de tourisme",
      "sh4": ["8703"], "sh6": "870322", "poids_min": 600, "poids_max": 3500},
-    {"mots": ["olive oil", "huile d'olive"], "libelle": "huile d'olive en bidon de 5 L",
+    # Huiles d'olive (1509) et de grignons d'olive (1510) : meme densite, meme
+    # plage de poids pour un bidon de 5 L.
+    {"mots": ["olive-pomace oil", "pomace oil", "olive oil", "huile de grignons", "huile d'olive"],
+     "libelle": "huile d'olive ou de grignons d'olive en bidon de 5 L",
      "sh4": ["1509", "1510"], "sh6": "151090", "poids_min": 3.5, "poids_max": 7},
-    {"mots": ["office desk", "desk", "bureau"], "libelle": "bureau en bois",
+    # Meubles en bois (9403) : un bureau et une armoire de salon ont des poids comparables.
+    {"mots": ["office desk", "desk", "bureau", "living room cabinet", "cabinet", "armoire"],
+     "libelle": "meuble en bois (bureau, armoire de salon)",
      "sh4": ["9403"], "sh6": "940360", "poids_min": 8, "poids_max": 150},
     {"mots": ["smartphone", "mobile phone"], "libelle": "smartphone",
      "sh4": ["8517"], "sh6": "851713", "poids_min": 0.08, "poids_max": 0.6},

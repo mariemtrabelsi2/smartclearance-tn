@@ -51,7 +51,7 @@
       "anomalies": [
         {
           "type": "poids_invraisemblable",
-          "detail": "1.400 kg par unite pour 'Wooden office desk'"
+          "detail": "1.400 kg par unite pour 'Wooden living room cabinet'"
         },
         {
           "type": "ecart_exportateur",
@@ -67,11 +67,11 @@
       "anomalies": [
         {
           "type": "designation_vs_sh",
-          "detail": "facture dit 'Olive oil virgin 5L' mais SH declare 732690"
+          "detail": "facture dit 'Olive-pomace oil 5L' mais SH declare 732690"
         },
         {
           "type": "poids_invraisemblable",
-          "detail": "0.200 kg par unite pour 'Olive oil virgin 5L'"
+          "detail": "0.200 kg par unite pour 'Olive-pomace oil 5L'"
         }
       ],
       "justification_presente": false

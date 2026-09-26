@@ -243,11 +243,11 @@
       "anomalies": [
         {
           "type": "poids_invraisemblable",
-          "detail": "1.400 kg par unite pour 'Wooden office desk'"
+          "detail": "1.400 kg par unite pour 'Wooden living room cabinet'"
         },
         {
           "type": "designation_vs_sh",
-          "detail": "facture dit 'Wooden office desk' mais SH declare 732690"
+          "detail": "facture dit 'Wooden living room cabinet' mais SH declare 732690"
         }
       ],
       "justification_presente": false

@@ -30,8 +30,8 @@ PRODUITS = [
     ("852872", "LED TV 43 inch Smart", "Moniteurs et projecteurs", 23.9, 8.0),
     ("851713", "Smartphone 6.5 inch 128GB", "Telephones intelligents", 142.0, 0.2),
     ("870322", "Passenger car 1200cc", "Voitures de tourisme", 9.5, 1100.0),
-    ("151090", "Olive oil virgin 5L", "Huiles d'olive", 4.2, 5.0),
-    ("940360", "Wooden office desk", "Meubles en bois", 3.8, 35.0),
+    ("151090", "Olive-pomace oil 5L", "Huiles de grignons d'olive", 4.2, 5.0),
+    ("940360", "Wooden living room cabinet", "Meubles en bois, autres que de bureau ou de cuisine", 3.8, 35.0),
     ("610910", "Cotton T-shirt", "T-shirts en coton", 18.5, 0.2),
 ]
 FOURNISSEURS = [
