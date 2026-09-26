@@ -17,6 +17,7 @@ LIBELLES_ALERTE = {
     "ecart_exportateur": "Exportateur différent selon les pièces",
     "ecart_origine": "Origine différente selon les pièces",
     "ecart_origine_certificat": "Origine du certificat différente de la déclaration",
+    "ddm_champ_obligatoire_absent": "Champ obligatoire absent de la déclaration",
     "ecart_poids": "Poids différent selon les pièces",
     "ecart_quantite": "Quantité différente selon les pièces",
     "ecart_reference": "Référence de facture différente selon les pièces",

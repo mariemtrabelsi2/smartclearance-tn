@@ -102,6 +102,7 @@ SEUIL_PHYSIQUE = 65
 PLAFOND_PROFIL = 40
 
 PIECES = {
+    "ddm_champ_obligatoire_absent": ["Déclaration rectifiée (champ obligatoire renseigné)"],
     "ecart_quantite": ["Contrat commercial", "Liste de colisage rectifiée"],
     "ecart_poids": ["Ticket de pesée", "Liste de colisage rectifiée"],
     "ecart_valeur": ["Preuve de paiement (avis SWIFT, relevé bancaire)", "Contrat commercial"],

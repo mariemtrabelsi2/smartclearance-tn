@@ -156,6 +156,19 @@ def charger(dossier):
     return ddm, docs, details
 
 
+# Champs obligatoires de la DDM : nom en clair -> cle(s) acceptee(s). La valeur
+# peut etre declaree en USD ou dans une autre devise (convertie par l'Agent 2).
+CHAMPS_OBLIGATOIRES_DDM = {
+    "code SH": ["code_sh"],
+    "valeur": ["valeur_cif_usd", "valeur_cif"],
+    "poids net": ["poids_net_kg"],
+    "quantité": ["quantite"],
+    "origine": ["pays_origine"],
+    "importateur": ["importateur"],
+    "référence de facture": ["reference_facture"],
+}
+
+
 def analyser(dossier: str, date_reference=None) -> RapportAgent:
     """date_reference : date de l'analyse (aujourd'hui par defaut), pour reperer
     une date de document dans le futur."""
@@ -184,6 +197,20 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
 
     for type_doc, champs in docs.items():
         r.non_lus += [f"{type_doc}.{c}" for c, v in champs.items() if v is None]
+
+    # ---------- NIVEAU 1 : champ obligatoire absent de la DDM ----------
+    # Une declaration incomplete est elle-meme un motif de controle : sans ce
+    # signal, un champ absent eteindrait en silence les controles qui en
+    # dependent (sans poids declare, ni ecart de poids ni prix au kilo).
+    # PRESENCE seulement, jamais la valeur.
+    for clair, cles in CHAMPS_OBLIGATOIRES_DDM.items():
+        if not any(ddm.get(c) is not None and str(ddm.get(c)).strip() != "" for c in cles):
+            r.ajouter(
+                type="ddm_champ_obligatoire_absent", niveau=NIVEAU_CONTRADICTION, gravite=80,
+                message=f"Champ obligatoire absent de la déclaration : {clair}.",
+                preuve={"champ": clair},
+                source="DDM : champ " + " ou ".join(cles),
+            )
 
     # ---------- NIVEAU 1 : contradictions ----------
 
