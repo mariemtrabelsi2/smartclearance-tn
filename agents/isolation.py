@@ -8,9 +8,8 @@ d'une alerte de prix deja emise quand elle la confirme.
 import math
 import os
 from functools import lru_cache
-from pathlib import Path
 
-from agents.profileur import HISTORIQUE_DEFAUT, lire_historique
+from agents import stockage
 
 # Un seul fil pour OpenBLAS (charge par scikit-learn) : par defaut il reserve
 # de la memoire par coeur, et sur un poste charge l'import echoue en MemoryError.
@@ -38,12 +37,12 @@ def _variables(prix_kg, valeur, poids):
 
 
 @lru_cache(maxsize=4)
-def _forets(historique_csv):
+def _forets(backend, historique_csv):
     """Une foret par code SH : les prix au kilo vont de 1 a 180 USD selon le
     produit, une foret globale trouverait normal un smartphone brade."""
     from sklearn.ensemble import IsolationForest
     par_sh = {}
-    for l in lire_historique(historique_csv):
+    for l in stockage.lire_historique(historique_csv) or []:
         v, p = float(l["valeur"]), float(l["poids"])
         if v > 0 and p > 0:
             par_sh.setdefault(l["code_sh"], []).append(_variables(l["prix_kg"], v, p))
@@ -51,12 +50,12 @@ def _forets(historique_csv):
             for sh, X in par_sh.items() if len(X) >= MIN_OBSERVATIONS}
 
 
-def score_isolation(ddm, historique_csv=HISTORIQUE_DEFAUT):
+def score_isolation(ddm, historique_csv=None):
     """None si pas de foret pour ce code SH ou donnees manquantes : pas d'avis."""
-    if not Path(historique_csv).exists():
-        return None
     try:
-        foret = _forets(str(historique_csv)).get(str(ddm.get("code_sh")))
+        # Le backend fait partie de la cle du cache : changer de stockage
+        # ne doit jamais reutiliser une foret apprise sur l'autre source.
+        foret = _forets(stockage.BACKEND, historique_csv).get(str(ddm.get("code_sh")))
     except Exception:
         # Signal secondaire : s'il ne peut pas etre calcule (bibliotheque absente,
         # memoire insuffisante), l'analyse continue sans lui.
@@ -68,7 +67,7 @@ def score_isolation(ddm, historique_csv=HISTORIQUE_DEFAUT):
     return round(float(-foret.score_samples([_variables(v / p, v, p)])[0]), 3)
 
 
-def confirmer(alertes, ddm, historique_csv=HISTORIQUE_DEFAUT):
+def confirmer(alertes, ddm, historique_csv=None):
     """Majore les alertes de prix que la foret confirme. Ne cree jamais d'alerte."""
     prix = [a for a in alertes if a.type in TYPES_PRIX]
     if not prix:

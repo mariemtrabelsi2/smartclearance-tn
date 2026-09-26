@@ -9,7 +9,8 @@ from datetime import timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from agents.profileur import analyser, lire_historique, HISTORIQUE_DEFAUT  # noqa: E402
+from agents.profileur import analyser, HISTORIQUE_DEFAUT  # noqa: E402
+from agents.stockage import lire_historique  # noqa: E402
 
 VERITE = HISTORIQUE_DEFAUT.parent / "historique_verite.json"
 
@@ -24,7 +25,7 @@ def operation(l, decalage_jours=1):
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     v = json.loads(VERITE.read_text(encoding="utf-8"))
-    h = lire_historique(HISTORIQUE_DEFAUT)
+    h = lire_historique()
     par_imp = {}
     for l in sorted(h, key=lambda l: l["date"]):
         par_imp.setdefault(l["importateur"], []).append(l)

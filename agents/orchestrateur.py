@@ -6,7 +6,8 @@ import json
 from pathlib import Path
 
 from agents.base import RapportAgent, NIVEAU_CONTRADICTION
-from agents import inspecteur_documentaire, analyste_prix, profileur, isolation, registre
+from agents import inspecteur_documentaire, analyste_prix, profileur, isolation
+from agents import registre as agent_registre
 from agents.devises import fmt_tnd, vers_tnd, MENTION_TAUX, SOURCE_TAUX
 
 # Une contradiction entre documents est un fait ; un ecart de prix ou de
@@ -183,12 +184,12 @@ def synthetiser(rapports: list) -> dict:
     }
 
 
-def analyser_dossier(dossier, bareme_csv=analyste_prix.BAREME_DEFAUT,
-                     historique_csv=profileur.HISTORIQUE_DEFAUT,
-                     registre_csv=registre.REGISTRE_DEFAUT) -> dict:
+def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=True) -> dict:
     """Chaine complete : Agents 1 et 2 lisent le dossier, l'Agent 3 le profil
     de l'operateur, le registre les doublons de facture, le coordinateur
-    synthetise. registre_csv=None desactive le registre (rien n'est ecrit)."""
+    synthetise. Sources : None = source par defaut du stockage actif.
+    registre : True = registre par defaut, un chemin = ce registre (mesures),
+    False/None = registre desactive (rien n'est ecrit)."""
     r1 = inspecteur_documentaire.analyser(dossier)
     # Premier lien entre agents : l'Agent 2 recoit ce que l'Agent 1 a etabli
     # (notamment un code SH suggere quand la designation contredit la DDM).
@@ -200,8 +201,9 @@ def analyser_dossier(dossier, bareme_csv=analyste_prix.BAREME_DEFAUT,
     # (la DDM de test n'a pas de date propre).
     r3 = profileur.analyser(r1.donnees["ddm"], historique_csv, r1.donnees["facture"].get("date"))
     rapports = [r1, r2, r3]
-    if registre_csv is not None:
-        rapports.append(registre.analyser(r1.donnees["ddm"], r1.donnees["facture"], registre_csv))
+    if registre:
+        source = None if registre is True else registre
+        rapports.append(agent_registre.analyser(r1.donnees["ddm"], r1.donnees["facture"], source))
     synthese = synthetiser(rapports)
     synthese["numero_ddm"] = r1.donnees["ddm"].get("numero_ddm")
     synthese["normalisations"] = r1.donnees.get("normalisations", [])

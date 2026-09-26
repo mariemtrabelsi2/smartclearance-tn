@@ -11,11 +11,11 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from agents import stockage
 from agents.orchestrateur import analyser_dossier
 
 RACINE = Path(__file__).resolve().parent
 DOSSIERS = RACINE / "dossiers"
-FEEDBACK = RACINE / "feedback.jsonl"
 
 COULEUR_NIVEAU = {1: "#c62828", 2: "#ef6c00"}
 LIBELLE_NIVEAU = {1: "Contradiction (niveau 1)", 2: "Écart à justifier (niveau 2)"}
@@ -43,8 +43,7 @@ def enregistrer_feedback(dossier, synthese, alerte, decision):
         "recommandation": synthese["recommandation"],
         "decision_inspecteur": decision,
     }
-    with open(FEEDBACK, "a", encoding="utf-8") as f:
-        f.write(json.dumps(ligne, ensure_ascii=False) + "\n")
+    stockage.enregistrer_feedback(ligne)
 
 
 def tableau_preuve(preuve):

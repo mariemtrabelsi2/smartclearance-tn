@@ -8,6 +8,7 @@ import re
 import statistics
 from pathlib import Path
 
+from agents import stockage
 from agents.base import RapportAgent, NIVEAU_ECART
 from agents.devises import conversion, fmt_tnd, fmt_tnd_kg, vers_tnd, MENTION_TAUX
 
@@ -63,18 +64,14 @@ def creer_bareme_si_absent(chemin=BAREME_DEFAUT):
             w.writerow([sh, pays, prix, "UN Comtrade 2023, imports Tunisie"])
 
 
-def lire_bareme(chemin):
-    """{(code_sh, pays): [prix...]} : plusieurs lignes par couple sont permises,
+def lire_bareme(codes_sh, source=None):
+    """{(code_sh, pays): [prix...]} pour les codes demandes seulement (requete
+    par code, indexee en SQLite). Plusieurs lignes par couple sont permises,
     d'ou la mediane, moins sensible qu'une moyenne a une ligne aberrante."""
     bareme = {}
-    with open(chemin, newline="", encoding="utf-8") as f:
-        for ligne in csv.DictReader(f):
-            try:
-                prix = float(ligne["prix_kg_usd"])
-            except (TypeError, ValueError):
-                continue
-            cle = (ligne["code_sh"].strip(), ligne["pays_origine"].strip().upper())
-            bareme.setdefault(cle, []).append(prix)
+    for code in dict.fromkeys(c for c in codes_sh if c):
+        for ligne in stockage.chercher_bareme(code, source) or []:
+            bareme.setdefault((ligne["code_sh"], ligne["pays_origine"]), []).append(ligne["prix_kg_usd"])
     return bareme
 
 
@@ -146,14 +143,14 @@ def _rapprocher_justificatif(r, texte, prix_kg):
                          f"{residuel:+.0f} % de la reference. {entete} {MENTION_OMC}")
 
 
-def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
+def analyser(donnees_ddm: dict, bareme_csv=None,
              donnees_agent1: dict = None) -> RapportAgent:
     """donnees_agent1 : ce que l'inspecteur documentaire a etabli. S'il a vu que
     la designation ne colle pas au code declare, on verifie aussi le prix avec
     le code de la marchandise reellement decrite."""
     r = RapportAgent(agent="Analyste prix")
-    creer_bareme_si_absent(bareme_csv)
-    bareme = lire_bareme(bareme_csv)
+    if stockage.BACKEND == "csv" and bareme_csv is None:
+        creer_bareme_si_absent()
 
     sh = str(donnees_ddm.get("code_sh") or "").strip()
     pays = str(donnees_ddm.get("pays_origine") or "").strip().upper()
@@ -196,6 +193,10 @@ def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
                       "prix_declare_brut": round(prix_brut, 2), "prix_ajuste_cif": round(prix_kg, 2)}
         r.donnees.update(ajustement)
 
+    suggere = str((donnees_agent1 or {}).get("code_sh_suggere") or "").strip()
+    bareme = lire_bareme([sh, suggere], bareme_csv)
+    nom_bareme = Path(bareme_csv).name if bareme_csv else stockage.nom_source("bareme")
+
     # ---------- 1. Code declare ----------
     ref = _chercher_reference(bareme, sh, pays)
     if ref is None:
@@ -225,7 +226,7 @@ def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
                         "fiabilite_reference": ref["fiabilite"], "type_reference": ref["type"],
                         "origines_agregees": ref["origines"],
                         "nb_observations": len(ref["prix_ref"])},
-                source=f"DDM : valeur_cif_usd / poids_net_kg ; bareme {Path(bareme_csv).name} "
+                source=f"DDM : valeur_cif_usd / poids_net_kg ; bareme {nom_bareme} "
                        f"lignes {sh}/{','.join(ref['origines'])}",
             )
         statut_declare = "REFERENCE_PARTIELLE" if ref["type"] == "similaires" else None
@@ -233,7 +234,6 @@ def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
     # ---------- 2. Code suggere par l'Agent 1 ----------
     # Un faux classement peut servir a echapper au controle de prix : sous le
     # code declare, la marchandise n'a pas de reference ou une reference basse.
-    suggere = str((donnees_agent1 or {}).get("code_sh_suggere") or "").strip()
     alerte_reclassement = False
     if suggere and suggere != sh:
         ref2 = _chercher_reference(bareme, suggere, pays)
@@ -262,7 +262,7 @@ def analyser(donnees_ddm: dict, bareme_csv: str = BAREME_DEFAUT,
                             "type_reference": ref2["type"], "origines_agregees": ref2["origines"],
                             "nb_observations": len(ref2["prix_ref"])},
                     source=(f"inspecteur documentaire : designation facture -> SH {suggere} ; "
-                            f"bareme {Path(bareme_csv).name} lignes {suggere}/{','.join(ref2['origines'])}"),
+                            f"bareme {nom_bareme} lignes {suggere}/{','.join(ref2['origines'])}"),
                 )
 
     # ---------- 3. Justificatif de remise joint au dossier ----------

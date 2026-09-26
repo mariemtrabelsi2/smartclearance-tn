@@ -10,6 +10,7 @@ import statistics
 from datetime import date
 from pathlib import Path
 
+from agents import stockage
 from agents.base import RapportAgent, NIVEAU_ECART
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -37,13 +38,9 @@ def _mois_entre(a, b):
     return (b.year - a.year) * 12 + b.month - a.month + (b.day - a.day) / 30
 
 
-def lire_historique(chemin):
-    with open(chemin, newline="", encoding="utf-8") as f:
-        lignes = list(csv.DictReader(f))
-    for l in lignes:
-        l["date"] = _d(l["date"])
-        l["prix_kg"] = float(l["prix_kg"])
-    return lignes
+def lire_historique(source=None):
+    """Compatibilite : passe par la couche de stockage."""
+    return stockage.lire_historique(source)
 
 
 def lire_pays_risque(chemin):
@@ -73,18 +70,18 @@ def _regression(xs, ys):
     return pente, t
 
 
-def analyser(ddm: dict, historique_csv=HISTORIQUE_DEFAUT, date_ddm=None,
+def analyser(ddm: dict, historique_csv=None, date_ddm=None,
              pays_risque_csv=PAYS_RISQUE_DEFAUT) -> RapportAgent:
     """date_ddm : date de l'operation. On ne regarde que l'historique ANTERIEUR,
     sinon l'operation se justifierait elle-meme (un changement de secteur
     deviendrait 'habituel' des qu'il est enregistre)."""
     r = RapportAgent(agent="Profileur")
-    if not Path(historique_csv).exists():
+    histo = stockage.lire_historique(historique_csv)
+    if histo is None:
         r.non_lus.append("historique des declarations indisponible")
         r.statut = "INCOMPLET"
         return r
 
-    histo = lire_historique(historique_csv)
     ref = _d(date_ddm) if date_ddm else max(l["date"] for l in histo)
     histo = [l for l in histo if l["date"] < ref]
 
