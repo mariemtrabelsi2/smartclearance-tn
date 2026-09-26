@@ -409,10 +409,28 @@ def main():
     cible_dup = rng_dup.choice([i for i in anormaux if i >= 2])
     source_dup = rng_dup.randint(1, cible_dup - 1)
 
+    # Variantes de qualite sur des sous-evaluations deja posees : ce n'est pas une
+    # anomalie de plus, c'est la meme, qualifiee. Choix deterministe (sans tirage)
+    # parmi les dossiers portant une sous-evaluation : l'avant-dernier 'Refurbished',
+    # le dernier 'Brand new original' ; un seul dossier -> 'Refurbished' seulement.
+    sous = [i for i, q in enumerate(plan, start=1) if "sous_evaluation" in q]
+    variantes = {}
+    if len(sous) >= 2:
+        variantes = {sous[-2]: ("Refurbished", "qualite degradante"),
+                     sous[-1]: ("Brand new original", "qualite valorisante")}
+    elif sous:
+        variantes = {sous[0]: ("Refurbished", "qualite degradante")}
+
     verite, total_anos, n_justif = [], 0, 0
     for i, quelles in enumerate(plan, start=1):
         d = construire(i)
         posees = injecter(d, quelles)
+        if i in variantes:
+            mention, famille = variantes[i]
+            d["designation_facture"] = f"{mention} {d['designation_facture']}"
+            for a in posees:
+                if a["type"] == "sous_evaluation":
+                    a["variante"] = f"{famille} : '{mention}' dans la designation"
         co = certificat_initial(d, rng_co)
         posees += injecter_certificat(co, d, cibles.get(i, []), rng_co)
         if i == cible_dup:

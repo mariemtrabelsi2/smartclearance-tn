@@ -44,7 +44,8 @@
       "anomalies": [
         {
           "type": "sous_evaluation",
-          "detail": "45.45 USD/kg vs reference 142.0 USD/kg"
+          "detail": "45.45 USD/kg vs reference 142.0 USD/kg",
+          "variante": "qualite degradante : 'Refurbished' dans la designation"
         },
         {
           "type": "designation_vs_sh",

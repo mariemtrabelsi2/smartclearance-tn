@@ -29,7 +29,8 @@
         },
         {
           "type": "sous_evaluation",
-          "detail": "0.76 USD/kg vs reference 4.2 USD/kg"
+          "detail": "0.76 USD/kg vs reference 4.2 USD/kg",
+          "variante": "qualite degradante : 'Refurbished' dans la designation"
         },
         {
           "type": "autorite_emettrice_incoherente",
@@ -98,7 +99,8 @@
       "anomalies": [
         {
           "type": "sous_evaluation",
-          "detail": "0.76 USD/kg vs reference 4.2 USD/kg"
+          "detail": "0.76 USD/kg vs reference 4.2 USD/kg",
+          "variante": "qualite valorisante : 'Brand new original' dans la designation"
         }
       ],
       "justification_presente": true,

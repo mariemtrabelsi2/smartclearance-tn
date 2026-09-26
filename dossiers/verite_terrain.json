@@ -208,7 +208,8 @@
       "anomalies": [
         {
           "type": "sous_evaluation",
-          "detail": "45.45 USD/kg vs reference 142.0 USD/kg"
+          "detail": "45.45 USD/kg vs reference 142.0 USD/kg",
+          "variante": "qualite degradante : 'Refurbished' dans la designation"
         }
       ],
       "justification_presente": true,
@@ -228,7 +229,8 @@
         },
         {
           "type": "sous_evaluation",
-          "detail": "6.94 USD/kg vs reference 23.9 USD/kg"
+          "detail": "6.94 USD/kg vs reference 23.9 USD/kg",
+          "variante": "qualite valorisante : 'Brand new original' dans la designation"
         }
       ],
       "justification_presente": true,

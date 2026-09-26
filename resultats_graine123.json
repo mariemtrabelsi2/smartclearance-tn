@@ -123,15 +123,15 @@
       ],
       "obtenues": [
         "autorite_emettrice_incoherente",
-        "sous_evaluation",
-        "designation_vs_sh"
+        "designation_vs_sh",
+        "sous_evaluation"
       ],
       "manquees": [],
       "en_trop": [],
       "alertes_profil": [
         "changement_secteur"
       ],
-      "score": 95,
+      "score": 94,
       "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": true
     },
@@ -217,7 +217,7 @@
       "manquees": [],
       "en_trop": [],
       "alertes_profil": [],
-      "score": 39,
+      "score": 45,
       "recommandation": "CONTROLE_DOCUMENTAIRE",
       "analyse_partielle": true
     },
