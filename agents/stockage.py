@@ -9,6 +9,7 @@ source par defaut du backend actif ; avec elle, ce fichier-la (tests, registre
 temporaire des mesures).
 """
 import csv
+from contextlib import closing
 import json
 import os
 import tempfile
@@ -35,6 +36,8 @@ def cle_reference(s):
 
 def nom_source(jeu):
     """Libelle court de la source, pour les champs 'source' des alertes."""
+    if BACKEND == "sqlite":
+        return f"{BASE_SQLITE.name}:{ {'references': 'references_vues'}.get(jeu, jeu) }"
     return {"bareme": BAREME_CSV.name, "historique": HISTORIQUE_CSV.name,
             "references": REFERENCES_CSV.name}[jeu]
 
@@ -129,6 +132,129 @@ def _csv_registre_temporaire():
     return Path(tempfile.mkdtemp(prefix="registre_mesure_")) / "references_vues.csv"
 
 
+# ============================================================ backend SQLite
+#
+# Ce que SQLite apporte ici : l'atomicite des ecritures du registre (deux
+# analyses simultanees ne corrompent pas le fichier, et la contrainte UNIQUE
+# empeche d'enregistrer deux fois la meme declaration), une requete indexee
+# sur le bareme, un format unique pour les quatre jeux. PAS de gain de vitesse
+# sur quelques milliers de lignes.
+
+BASE_SQLITE = RACINE / "donnees" / "smartclearance.db"
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS bareme (
+    code_sh TEXT NOT NULL, pays_origine TEXT NOT NULL,
+    prix_kg_usd REAL NOT NULL, source TEXT);
+CREATE INDEX IF NOT EXISTS idx_bareme_sh_pays ON bareme(code_sh, pays_origine);
+CREATE TABLE IF NOT EXISTS historique (
+    importateur TEXT, fournisseur TEXT, code_sh TEXT, pays_origine TEXT,
+    date TEXT, valeur TEXT, poids TEXT, prix_kg REAL);
+CREATE TABLE IF NOT EXISTS references_vues (
+    reference TEXT NOT NULL,          -- cle normalisee (casse, espaces)
+    reference_facture TEXT NOT NULL,  -- telle que lue
+    numero_ddm TEXT NOT NULL, numero_ddm_cle TEXT NOT NULL,
+    importateur TEXT, date TEXT, date_analyse TEXT,
+    UNIQUE (reference, numero_ddm_cle));
+CREATE INDEX IF NOT EXISTS idx_references ON references_vues(reference);
+CREATE TABLE IF NOT EXISTS feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, contenu TEXT NOT NULL);
+"""
+
+
+def _connexion(chemin, creer=False):
+    import sqlite3
+    chemin = Path(chemin)
+    if not chemin.exists() and not creer:
+        raise FileNotFoundError(f"{chemin} absent : lancer py outils/migrer_vers_sqlite.py "
+                                f"ou revenir a SMARTCLEARANCE_STOCKAGE=csv")
+    chemin.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(chemin, timeout=10)
+    con.row_factory = sqlite3.Row
+    con.executescript(SCHEMA)
+    return con
+
+
+def _sql_lire_bareme(source=None):
+    with closing(_connexion(source or BASE_SQLITE)) as con:
+        return [dict(l) for l in con.execute(
+            "SELECT code_sh, pays_origine, prix_kg_usd, source FROM bareme ORDER BY rowid")]
+
+
+def _sql_chercher_bareme(code_sh, source=None):
+    # Requete sur l'index (code_sh, pays_origine) : pas de parcours du bareme.
+    with closing(_connexion(source or BASE_SQLITE)) as con:
+        return [dict(l) for l in con.execute(
+            "SELECT code_sh, pays_origine, prix_kg_usd, source FROM bareme "
+            "WHERE code_sh = ? ORDER BY rowid", (str(code_sh).strip(),))]
+
+
+def _sql_lire_historique(source=None):
+    # ORDER BY rowid : meme ordre que le CSV, dont depend la foret d'isolation.
+    with closing(_connexion(source or BASE_SQLITE)) as con:
+        lignes = [dict(l) for l in con.execute(
+            "SELECT importateur, fournisseur, code_sh, pays_origine, date, valeur, poids, "
+            "prix_kg FROM historique ORDER BY rowid")]
+    for l in lignes:
+        l["date"] = date.fromisoformat(l["date"])
+    return lignes or None
+
+
+def _export_references(source):
+    """Export CSV tenu a jour meme en mode sqlite : un auditeur doit pouvoir
+    ouvrir le registre sans outil."""
+    return REFERENCES_CSV if source is None else Path(source).with_suffix(".csv")
+
+
+def _sql_chercher_reference(reference, source=None):
+    with closing(_connexion(source or BASE_SQLITE, creer=True)) as con:
+        lignes = [dict(l) for l in con.execute(
+            "SELECT reference_facture, numero_ddm, importateur, date, date_analyse "
+            "FROM references_vues WHERE reference = ? ORDER BY rowid",
+            (cle_reference(reference),))]
+    return lignes or None
+
+
+def _sql_enregistrer_reference(reference, ddm, importateur, date_doc, source=None):
+    ligne = {"reference_facture": reference, "numero_ddm": ddm, "importateur": importateur,
+             "date": date_doc or "", "date_analyse": date.today().isoformat()}
+    con = _connexion(source or BASE_SQLITE, creer=True)
+    try:
+        with con:   # transaction : tout ou rien
+            cur = con.execute(
+                "INSERT OR IGNORE INTO references_vues (reference, reference_facture, numero_ddm, "
+                "numero_ddm_cle, importateur, date, date_analyse) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (cle_reference(reference), reference, ddm, cle_reference(ddm),
+                 importateur, ligne["date"], ligne["date_analyse"]))
+    finally:
+        con.close()
+    if cur.rowcount == 1:
+        _csv_ajouter_reference(ligne, _export_references(source))
+        return True
+    return False
+
+
+def _sql_enregistrer_feedback(entree, source=None):
+    con = _connexion(source or BASE_SQLITE, creer=True)
+    try:
+        with con:
+            con.execute("INSERT INTO feedback (contenu) VALUES (?)",
+                        (json.dumps(entree, ensure_ascii=False),))
+    finally:
+        con.close()
+    # Export lisible sans outil, comme le registre.
+    _jsonl_ajouter(entree, FEEDBACK_JSONL if source is None else Path(source).with_suffix(".jsonl"))
+
+
+def _sql_lire_feedback(source=None):
+    with closing(_connexion(source or BASE_SQLITE, creer=True)) as con:
+        return [json.loads(l["contenu"]) for l in con.execute("SELECT contenu FROM feedback ORDER BY id")]
+
+
+def _sql_registre_temporaire():
+    return Path(tempfile.mkdtemp(prefix="registre_mesure_")) / "registre.db"
+
+
 # ============================================================ interface publique
 
 _IMPL = {
@@ -139,6 +265,13 @@ _IMPL = {
             "enregistrer_feedback": _csv_enregistrer_feedback,
             "lire_feedback": _csv_lire_feedback,
             "registre_temporaire": _csv_registre_temporaire},
+    "sqlite": {"lire_bareme": _sql_lire_bareme, "chercher_bareme": _sql_chercher_bareme,
+               "lire_historique": _sql_lire_historique,
+               "chercher_reference": _sql_chercher_reference,
+               "enregistrer_reference": _sql_enregistrer_reference,
+               "enregistrer_feedback": _sql_enregistrer_feedback,
+               "lire_feedback": _sql_lire_feedback,
+               "registre_temporaire": _sql_registre_temporaire},
 }
 
 

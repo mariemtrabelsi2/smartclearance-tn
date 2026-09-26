@@ -3,3 +3,5 @@ __pycache__/
 .env
 feedback.jsonl
 donnees/references_vues.csv
+donnees/smartclearance.db
+donnees/*.db.tmp

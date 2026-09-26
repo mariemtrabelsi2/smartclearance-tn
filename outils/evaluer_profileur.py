@@ -44,7 +44,7 @@ def main():
 
     trouves, print_lignes = 0, []
     for imp, (ddm, dt, type_att) in attendus.items():
-        types = [a.type for a in analyser(ddm, HISTORIQUE_DEFAUT, dt).alertes]
+        types = [a.type for a in analyser(ddm, None, dt).alertes]
         ok = type_att in types
         trouves += ok
         print_lignes.append(f"{'OK' if ok else '!!'} {imp:28} attendu={type_att:20} obtenu={types}")
@@ -53,7 +53,7 @@ def main():
     fausses = []
     for imp in normaux:
         ddm, dt = operation(par_imp[imp][-1])
-        types = [a.type for a in analyser(ddm, HISTORIQUE_DEFAUT, dt).alertes]
+        types = [a.type for a in analyser(ddm, None, dt).alertes]
         if types:
             fausses.append((imp, types))
 
