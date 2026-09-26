@@ -130,6 +130,13 @@ with c2:
                     f"border:1px solid {couleur};color:{couleur};border-radius:1rem;"
                     f"font-size:.8rem'>{ref['libelle']}</span>", unsafe_allow_html=True)
     st.write(s["explication"])
+    m = s.get("marchandise") or {}
+    if m.get("designation"):
+        specs = ", ".join(f"{k} {v}" for k, v in (m.get("specifications") or {}).items())
+        mentions = m.get("qualite_degradante", []) + m.get("qualite_valorisante", [])
+        st.markdown(f"**Marchandise : {m['designation']}**"
+                    + (f" — spécifications : {specs}" if specs else "")
+                    + (f" — qualité annoncée : {', '.join(mentions)}" if mentions else ""))
     sh = s.get("code_sh") or {}
     if sh.get("code_sh"):
         st.markdown(f"**Code SH déclaré : {sh['code_sh']}** — {sh.get('designation_DDM') or ''}")

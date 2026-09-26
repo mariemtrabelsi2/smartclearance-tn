@@ -288,6 +288,9 @@ def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=Tru
     synthese = synthetiser(rapports)
     synthese["numero_ddm"] = r1.donnees["ddm"].get("numero_ddm")
     synthese["normalisations"] = r1.donnees.get("normalisations", [])
+    # Contexte pour juger le prix de CETTE marchandise ; aucun effet sur le score.
+    synthese["marchandise"] = {"designation": r1.donnees["facture"].get("designation"),
+                               **r1.donnees.get("qualite", {})}
     code = r1.donnees["ddm"].get("code_sh")
     synthese["code_sh"] = {"code_sh": code, "designation_officielle": nomenclature.designation(code),
                            "designation_DDM": r1.donnees["ddm"].get("designation")}

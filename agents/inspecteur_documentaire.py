@@ -86,6 +86,50 @@ def _designation_vague(designation, prod):
     return None
 
 
+# Qualite : elle QUALIFIE un doute de prix, elle ne recalcule aucune reference
+# (Comtrade agrege au code SH6, sans distinction de gamme). Terme -> qualificatif
+# utilise dans le message de l'Agent 2.
+QUALITE_DEGRADANTE = {
+    r"refurbished": "reconditionnee", r"reconditionnee?s?": "reconditionnee",
+    r"used": "d'occasion", r"second[ -]hand": "d'occasion", r"d'occasion|occasion": "d'occasion",
+    r"second choice": "de second choix", r"seconds": "de second choix",
+    r"b[ -]grade": "de second choix", r"class b": "de second choix",
+    r"overstock": "de fin de serie ou de surstock", r"end of line": "de fin de serie ou de surstock",
+    r"clearance stock": "de fin de serie ou de surstock",
+    r"defective": "defectueuse ou endommagee", r"damaged": "defectueuse ou endommagee",
+    r"sans marque": "sans marque", r"no brand": "sans marque",
+}
+QUALITE_VALORISANTE = [r"premium", r"brand new", r"original", r"genuine", r"first choice",
+                       r"grade a", r"top quality", r"haut de gamme", r"certified"]
+SPECIFICATIONS = {
+    "taille": r"(\d+(?:[.,]\d+)?)\s*(inch|in\b|\"|pouces?|cm(?![3³]))",
+    "capacite": r"(\d+(?:[.,]\d+)?)\s*(TB|GB|MB|ml|cl|litres?|liters?|L)\b",
+    "puissance": r"(\d+(?:[.,]\d+)?)\s*(kW|W|watts?)\b",
+    "cylindree": r"(\d+)\s*(cc|cm3|cm³)",
+    "grammage": r"(\d+)\s*(g/m2|g/m²|gsm)\b",
+}
+
+
+def _sans_accents(s):
+    return "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
+
+
+def qualite(designation):
+    """-> {"qualite_degradante": [...], "qualite_valorisante": [...], "specifications": {...}}.
+    N'emet aucune alerte : c'est l'Agent 2 qui s'en sert, et seulement si une
+    alerte de sous-evaluation existe deja."""
+    texte = _sans_accents((designation or "").lower())
+    degr = [m.group(0) for p in QUALITE_DEGRADANTE for m in [re.search(rf"\b(?:{p})\b", texte)] if m]
+    valo = [m.group(0) for p in QUALITE_VALORISANTE for m in [re.search(rf"\b{p}\b", texte)] if m]
+    specs = {}
+    for nom, motif in SPECIFICATIONS.items():
+        m = re.search(motif, designation or "", re.IGNORECASE)
+        if m:
+            specs[nom] = f"{m.group(1)} {m.group(2)}".replace('"', "inch")
+    return {"qualite_degradante": list(dict.fromkeys(degr)),
+            "qualite_valorisante": list(dict.fromkeys(valo)), "specifications": specs}
+
+
 def _ecart_relatif(a, b):
     return abs(a - b) / max(abs(a), abs(b), 1e-9)
 
@@ -398,6 +442,16 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
                             "reference": "table de repli interne"},
                     source="colisage : ligne 'Net weight' / facture : colonne QTY",
                 )
+
+    # Qualite et specifications : aucune alerte ici. L'Agent 2 s'en sert pour
+    # qualifier une sous-evaluation deja etablie ; les specifications donnent a
+    # l'inspecteur le contexte pour juger le prix et le poids de CETTE marchandise.
+    r.donnees["qualite"] = qualite(fac["designation"] or designation)
+    specs = r.donnees["qualite"]["specifications"]
+    if specs:
+        for a in r.alertes:
+            if a.type in ("designation_vs_sh", "poids_invraisemblable"):
+                a.preuve["specifications"] = specs
 
     # Plus de la moitie des champs illisibles : les controles ci-dessus ne
     # prouvent plus rien, il faut le dire plutot que d'afficher 'OK'.

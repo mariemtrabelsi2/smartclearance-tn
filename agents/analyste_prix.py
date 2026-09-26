@@ -75,6 +75,51 @@ def lire_bareme(codes_sh, source=None):
     return bareme
 
 
+FACTEUR_DEGRADANTE = 0.75       # une mention 'reconditionne', 'occasion'... peut expliquer un prix bas
+FACTEUR_VALORISANTE = 1.2       # 'neuf', 'd'origine'... rend un prix bas moins plausible
+LIMITE_QUALITE = "aucune reference de prix par gamme disponible"
+
+
+def _qualifier_par_qualite(r, q):
+    """Ajuste la gravite des alertes de prix existantes selon la qualite annoncee.
+    Ne cree ni ne supprime aucune alerte ; sans mention, rien ne change."""
+    if not q:
+        return
+    from agents.inspecteur_documentaire import QUALITE_DEGRADANTE
+    degr, valo, specs = q["qualite_degradante"], q["qualite_valorisante"], q["specifications"]
+    for a in r.alertes:
+        if not a.type.startswith("sous_evaluation"):
+            continue
+        if specs:
+            a.preuve["specifications"] = specs
+        if not degr and not valo:
+            continue
+        if degr and valo:
+            # Une designation a la fois 'neuve d'origine' et 'reconditionnee' est
+            # une incoherence en soi : on le dit, sans ajuster dans un sens ou l'autre.
+            famille, effet, termes = "contradictoire", 1.0, degr + valo
+            ajout = ("La designation contient a la fois une mention valorisante "
+                     f"({', '.join(valo)}) et une mention degradante ({', '.join(degr)}).")
+        elif degr:
+            famille, effet, termes = "degradante", FACTEUR_DEGRADANTE, degr
+            qualif = next((v for p, v in QUALITE_DEGRADANTE.items()
+                           if re.fullmatch(p, degr[0])), "de moindre qualite")
+            ajout = (f"La designation mentionne '{degr[0]}'. Une marchandise {qualif} peut "
+                     "legitimement valoir moins que la reference, qui porte sur la position "
+                     "tarifaire sans distinction de gamme. L'inspecteur verifiera la coherence "
+                     "entre cette mention et l'etat reel de la marchandise.")
+        else:
+            famille, effet, termes = "valorisante", FACTEUR_VALORISANTE, valo
+            ecart = a.preuve.get("ecart_pct")
+            ajout = (f"La designation annonce une marchandise neuve et d'origine ou de premier "
+                     f"choix ('{', '.join(valo)}'), ce qui rend l'ecart de {ecart:.0f} % "
+                     "moins plausible.")
+        a.gravite = min(GRAVITE_MAX, round(a.gravite * effet))
+        a.preuve.update({"qualite_detectee": ", ".join(termes), "famille": famille,
+                         "effet_gravite": effet, "limite": LIMITE_QUALITE})
+        a.message = a.message.replace(f" {MENTION_OMC}", f" {ajout} {MENTION_OMC}")
+
+
 def _chercher_reference(bareme, sh, pays):
     """Hierarchie OMC : marchandises identiques (meme SH, meme origine), sinon
     similaires (meme SH, autres origines), sinon rien. None = pas de reference."""
@@ -295,6 +340,11 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
             estimation = (f"Valeur non declaree estimee : {fmt_tnd(round(manque_usd, -2))} "
                           f"(estimation, {MENTION_TAUX}).")
             a.message = a.message.replace(f" {MENTION_OMC}", f" {estimation} {MENTION_OMC}")
+
+    # ---------- 4. Qualite annoncee dans la designation ----------
+    # Uniquement sur une sous-evaluation deja etablie : la qualite QUALIFIE le
+    # doute, elle ne recalcule aucune reference (pas de prix par gamme).
+    _qualifier_par_qualite(r, (donnees_agent1 or {}).get("qualite"))
 
     # Pose apres ajouter(), qui force 'ALERTE' : l'inspecteur doit savoir que la
     # reference du code declare est absente ou approchee. Une alerte de
