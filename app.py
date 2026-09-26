@@ -74,6 +74,13 @@ def analyser_depot(fichiers):
 
 # ---------------- Choix du dossier ----------------
 
+# Corps de texte a 16 px minimum (lisibilite a l'ecran d'un poste d'inspection) ;
+# notes et tableaux replies restent plus petits.
+st.markdown("""<style>
+[data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] li { font-size: 16px; line-height: 1.55; }
+[data-testid="stCaptionContainer"] p { font-size: 14px; }
+</style>""", unsafe_allow_html=True)
+
 st.title("SmartClearance TN")
 st.caption("Aide au contrôle du couloir orange — recoupement DDM / pièces jointes. "
            "L'outil formule des doutes motivés ; la décision appartient à l'inspecteur.")
@@ -112,26 +119,100 @@ dossier = st.session_state["dossier"]
 # ---------------- En-tete : score, recommandation, badge ----------------
 
 st.divider()
-c1, c2 = st.columns([1, 3])
-with c1:
-    st.markdown(f"<div style='font-size:4.5rem;font-weight:700;line-height:1'>{s['score']}"
-                f"<span style='font-size:1.5rem;color:#888'>/100</span></div>",
-                unsafe_allow_html=True)
-    st.caption("Score de doute")
-with c2:
-    reco = s["recommandation"]
-    st.markdown(f"<div style='display:inline-block;padding:.5rem 1.2rem;border-radius:.4rem;"
-                f"background:{COULEUR_RECO[reco]};color:white;font-size:1.6rem;font-weight:600'>"
-                f"{LIBELLE_RECO[reco]}</div>", unsafe_allow_html=True)
-    ref = s.get("reference_prix")
-    if ref:
-        # Discret volontairement : c'est une information sur la qualite de la
-        # reference, pas un constat sur le dossier.
-        couleur = {"haute": "#2e7d32", "moyenne": "#ef6c00"}.get(ref["fiabilite"], "#757575")
-        st.markdown(f"<span style='display:inline-block;margin-top:.6rem;padding:.15rem .6rem;"
-                    f"border:1px solid {couleur};color:{couleur};border-radius:1rem;"
-                    f"font-size:.8rem'>{ref['libelle']}</span>", unsafe_allow_html=True)
-    st.write(s["explication"])
+
+# Bandeau de decision : la seule chose qu'il faut voir sans defiler.
+BANDEAU = {"LIBERATION": ("LIBÉRATION", "#1e7b34"),
+           "CONTROLE_DOCUMENTAIRE": ("CONTRÔLE DOCUMENTAIRE RECOMMANDÉ", "#b35400"),
+           "CONTROLE_PHYSIQUE": ("CONTRÔLE PHYSIQUE RECOMMANDÉ", "#8e1b1b")}
+texte_bandeau, fond_bandeau = BANDEAU.get(s["recommandation"], (s["recommandation"], "#555"))
+nb = len(s["alertes"])
+signaux = "aucun signal relevé" if nb == 0 else ("1 signal relevé" if nb == 1 else f"{nb} signaux relevés")
+st.markdown(
+    f"<div style='background:{fond_bandeau};color:#fff;padding:1.1rem 1.4rem;border-radius:.5rem;"
+    f"font-size:36px;font-weight:800;letter-spacing:.02em;line-height:1.15'>{texte_bandeau}</div>"
+    f"<div style='margin:.6rem 0 1.2rem;font-size:18px'>Score de doute {s['score']}/100 — {signaux}</div>",
+    unsafe_allow_html=True)
+
+def chiffre(col, valeur, libelle, complement=""):
+    """Gros chiffre, petit libelle en dessous."""
+    col.markdown(
+        f"<div style='font-size:40px;font-weight:800;line-height:1.1'>{valeur}"
+        f"<span style='font-size:18px;font-weight:600;opacity:.7'>{complement}</span></div>"
+        f"<div style='font-size:14px;opacity:.75;margin-top:.2rem'>{libelle}</div>",
+        unsafe_allow_html=True)
+
+
+vd = s.get("valeur_declaree") or {}
+k1, k2, k3 = st.columns(3)
+chiffre(k1, s["score"], "Score de doute", "/100")
+chiffre(k2, nb, "Nombre de signaux")
+chiffre(k3, f"{fr(vd['tnd'])} TND" if vd.get("tnd") else "—", "Valeur déclarée",
+        f" ({fr(vd['usd'])} USD)" if vd.get("usd") else "")
+st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+
+# ---------------- Alertes ----------------
+
+st.subheader(f"Signaux relevés ({len(s['alertes'])})")
+if not s["alertes"]:
+    st.success("Aucune incohérence relevée entre la déclaration et les pièces jointes.")
+
+# Affichage seulement : niveau 1 d'abord, puis niveau 2, chacun par gravite
+# decroissante. La synthese et le score ne sont pas touches.
+alertes_affichees = sorted(s["alertes"], key=lambda a: (a["niveau"], -a["gravite"]))
+for i, a in enumerate(alertes_affichees):
+    couleur = COULEUR_NIVEAU.get(a["niveau"], "#757575")
+    st.markdown(
+        f"<div style='border-left:8px solid {couleur};background:{couleur}1f;border-radius:.4rem;"
+        f"padding:.8rem 1rem;margin-top:1.1rem'>"
+        f"<div style='font-size:18px;font-weight:700'>{libelles.alerte(a['type'])}</div>"
+        f"<div style='font-size:13px;color:{couleur};font-weight:600;margin:.15rem 0 .5rem'>"
+        f"{LIBELLE_NIVEAU.get(a['niveau'], '')} · gravité {a['gravite']}</div>"
+        f"<div style='font-size:16px;line-height:1.5'>{a['message']}</div></div>",
+        unsafe_allow_html=True)
+    # Un systeme qui se modifie sans le dire serait refuse : l'ajustement appris
+    # reste visible, hors du depliant, avec ce qui le fonde.
+    if "ajustement_apprentissage" in a["preuve"]:
+        p = a["preuve"]
+        st.info(f"Gravité ajustée par les retours des inspecteurs : x{fr(p['ajustement_apprentissage'])} "
+                f"({p['gravite_avant_ajustement']} → {a['gravite']}), fondé sur {p['fonde_sur']}, "
+                f"calculé le {p['calcule_le']}.")
+    with st.expander("Détail du calcul", expanded=False):
+        st.dataframe(tableau_preuve(a["preuve"]), hide_index=True, width="stretch")
+        st.caption(f"Source : {a['source']}")
+        if "retours_inspecteurs" in a["preuve"]:
+            st.caption(f"Retours des inspecteurs sur ce motif : {a['preuve']['retours_inspecteurs']}.")
+
+    cle = f"{dossier}_{i}_{a['type']}"
+    b1, b2, _ = st.columns([1, 1, 3])
+    if b1.button("Anomalie confirmée", key=f"conf_{cle}"):
+        enregistrer_feedback(dossier, s, a, "anomalie_confirmee")
+        st.toast("Enregistré : anomalie confirmée")
+    if b2.button("Justification acceptée", key=f"just_{cle}"):
+        enregistrer_feedback(dossier, s, a, "justification_acceptee")
+        st.toast("Enregistré : justification acceptée")
+
+# ---------------- Explication et pieces a reclamer (visibles) ----------------
+
+st.subheader("Explication")
+st.write(s["explication"])
+# Discret : l'inspecteur doit savoir si le texte vient d'un modele de langage.
+# Dans les deux cas, score, recommandation et alertes sont calcules sans LLM.
+if s.get("source_explication") == "llm":
+    # Nom technique du modele en repli discret (infobulle), pas dans la phrase.
+    st.caption("Explication générée par un modèle de langage externe à partir des alertes ; "
+               "score et recommandation calculés sans modèle de langage.",
+               help=f"Modèle : {s['detail_explication'].get('modele')}")
+else:
+    st.caption("Explication rédigée automatiquement.")
+
+if s["documents_a_reclamer"]:
+    st.subheader("Pièces à réclamer à l'importateur")
+    st.markdown("\n".join(f"- {d}" for d in s["documents_a_reclamer"]))
+
+# ---------------- Tout le reste : depliants fermes ----------------
+
+st.markdown("<div style='height:.8rem'></div>", unsafe_allow_html=True)
+with st.expander("Contexte du dossier", expanded=False):
     m = s.get("marchandise") or {}
     if m.get("designation"):
         specs = ", ".join(f"{k} {v}" for k, v in (m.get("specifications") or {}).items())
@@ -144,64 +225,19 @@ with c2:
         st.markdown(f"**Code SH déclaré : {sh['code_sh']}** — {sh.get('designation_DDM') or ''}")
         st.caption("Nomenclature SH 2022 (libellé officiel, en anglais) : "
                    + (sh.get("designation_officielle") or "code absent de la nomenclature"))
-    # Discret : l'inspecteur doit savoir si le texte vient d'un modele de langage.
-    # Dans les deux cas, score, recommandation et alertes sont calcules sans LLM.
-    if s.get("source_explication") == "llm":
-        # Nom technique du modele en repli discret (infobulle), pas dans la phrase.
-        st.caption("Explication générée par un modèle de langage externe à partir des alertes ; "
-                   "score et recommandation calculés sans modèle de langage.",
-                   help=f"Modèle : {s['detail_explication'].get('modele')}")
-    else:
-        st.caption("Explication rédigée automatiquement.")
-    vd = s.get("valeur_declaree")
-    if vd and vd.get("usd"):
+    ref = s.get("reference_prix")
+    if ref:
+        couleur = {"haute": "#2e7d32", "moyenne": "#ef6c00"}.get(ref["fiabilite"], "#757575")
+        st.markdown(f"<span style='display:inline-block;padding:.15rem .6rem;"
+                    f"border:1px solid {couleur};color:{couleur};border-radius:1rem;"
+                    f"font-size:.85rem'>{ref['libelle']}</span>", unsafe_allow_html=True)
+    if vd.get("usd"):
         st.markdown(f"**{vd['libelle']}**")
         # Le taux est dit fixe partout : un taux faux presente comme officiel
         # serait pire qu'un taux annonce comme illustration.
         st.caption(f"Montants en dinars : {vd['taux']} — {vd['source_taux']}.")
 
-# ---------------- Alertes ----------------
-
-st.subheader(f"Alertes ({len(s['alertes'])})")
-if not s["alertes"]:
-    st.success("Aucune incohérence relevée entre la déclaration et les pièces jointes.")
-
-for i, a in enumerate(s["alertes"]):
-    couleur = COULEUR_NIVEAU.get(a["niveau"], "#757575")
-    st.markdown(
-        f"<div style='border-left:6px solid {couleur};padding:.4rem .8rem;margin-top:1rem;"
-        f"background:{couleur}14'><span style='color:{couleur};font-weight:700'>"
-        f"{LIBELLE_NIVEAU.get(a['niveau'], '')} · {libelles.alerte(a['type'])} · gravité {a['gravite']}</span>"
-        f"<br>{a['message']}</div>", unsafe_allow_html=True)
-    st.dataframe(tableau_preuve(a["preuve"]), hide_index=True, width="stretch")
-    st.caption(f"Source : {a['source']}")
-    # Un systeme qui se modifie sans le dire serait refuse : l'ajustement appris
-    # est annonce en clair, avec ce qui le fonde.
-    if "ajustement_apprentissage" in a["preuve"]:
-        p = a["preuve"]
-        st.info(f"Gravité ajustée par les retours des inspecteurs : x{fr(p['ajustement_apprentissage'])} "
-                f"({p['gravite_avant_ajustement']} → {a['gravite']}), fondé sur {p['fonde_sur']}, "
-                f"calculé le {p['calcule_le']}.")
-    elif "retours_inspecteurs" in a["preuve"]:
-        st.caption(f"Retours des inspecteurs sur ce motif : {a['preuve']['retours_inspecteurs']}.")
-
-    cle = f"{dossier}_{i}_{a['type']}"
-    b1, b2, _ = st.columns([1, 1, 3])
-    if b1.button("Anomalie confirmée", key=f"conf_{cle}"):
-        enregistrer_feedback(dossier, s, a, "anomalie_confirmee")
-        st.toast("Enregistré : anomalie confirmée")
-    if b2.button("Justification acceptée", key=f"just_{cle}"):
-        enregistrer_feedback(dossier, s, a, "justification_acceptee")
-        st.toast("Enregistré : justification acceptée")
-
-# ---------------- Pieces a reclamer et champs non lus ----------------
-
-if s["documents_a_reclamer"]:
-    st.subheader("Pièces à réclamer à l'importateur")
-    st.markdown("\n".join(f"- {d}" for d in s["documents_a_reclamer"]))
-
-st.subheader("Champs non lus")
-with st.container(border=True):
+with st.expander(f"Champs non lus ({len(s['champs_non_lus'])})", expanded=False):
     if s["champs_non_lus"]:
         st.caption("Ces éléments n'ont pas pu être lus ou comparés : "
                    "aucun contrôle n'a été fait dessus, rien n'a été deviné.")
@@ -213,6 +249,7 @@ with st.container(border=True):
 if s.get("normalisations"):
     # La declaration n'est jamais reecrite : on montre ce qui a ete lu et la
     # forme utilisee pour comparer, pour que l'inspecteur puisse contester.
-    with st.expander(f"Normalisations appliquées pour comparer ({len(s['normalisations'])})"):
+    with st.expander(f"Normalisations appliquées pour comparer ({len(s['normalisations'])})",
+                     expanded=False):
         st.caption("Valeurs brutes conservées telles quelles ; seule la forme normalisée sert aux comparaisons.")
         st.dataframe(pd.DataFrame(s["normalisations"]).astype(str), hide_index=True, width="stretch")
