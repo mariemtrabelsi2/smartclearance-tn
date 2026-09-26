@@ -33,6 +33,7 @@ PIECES = {
     "designation_vague": ["fiche technique du produit", "designation detaillee (marque, modele, reference)"],
     "sous_evaluation_via_reclassement": ["fiche technique du produit", "contrat commercial",
                                          "preuve de paiement (avis SWIFT, releve bancaire)"],
+    "saisie_douteuse": ["piece originale (verification de la saisie)"],
     "ecart_origine_certificat": ["certificat d'origine original", "preuve d'origine du fabricant"],
     "autorite_emettrice_incoherente": ["certificat d'origine original",
                                        "verification aupres de l'autorite emettrice"],

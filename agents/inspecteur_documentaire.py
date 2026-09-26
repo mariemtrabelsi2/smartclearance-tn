@@ -6,10 +6,12 @@ avec l'endroit ou l'inspecteur peut les verifier.
 import json
 import re
 import unicodedata
+from datetime import date
 from pathlib import Path
 
 from agents.base import RapportAgent, NIVEAU_CONTRADICTION, NIVEAU_ECART
 from agents.extraction import pdf_vers_texte, extraire_champs_detail, CHAMPS, cle_nom, cle_conteneur
+from agents.saisie import controles_saisie
 from agents.devises import conversion, fmt_tnd, nombre_fr
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -104,7 +106,9 @@ def charger(dossier):
     return ddm, docs, details
 
 
-def analyser(dossier: str) -> RapportAgent:
+def analyser(dossier: str, date_reference=None) -> RapportAgent:
+    """date_reference : date de l'analyse (aujourd'hui par defaut), pour reperer
+    une date de document dans le futur."""
     r = RapportAgent(agent="Inspecteur documentaire")
     ddm, docs, details = charger(dossier)
     fac, col, tra = docs["facture"], docs["colisage"], docs["transport"]
@@ -287,6 +291,12 @@ def analyser(dossier: str) -> RapportAgent:
             )
 
     # ---------- NIVEAU 2 : ecarts qui peuvent avoir une explication ----------
+
+    # Saisie douteuse : signalee, jamais corrigee.
+    for message, preuve, source in controles_saisie(ddm, docs, details,
+                                                    date_reference or date.today()):
+        r.ajouter(type="saisie_douteuse", niveau=NIVEAU_ECART, gravite=25,
+                  message=message, preuve=preuve, source=source)
 
     designation = fac["designation"] or col["designation"]
     prod = _produit(designation)
