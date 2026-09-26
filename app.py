@@ -253,3 +253,15 @@ if s.get("normalisations"):
                      expanded=False):
         st.caption("Valeurs brutes conservées telles quelles ; seule la forme normalisée sert aux comparaisons.")
         st.dataframe(pd.DataFrame(s["normalisations"]).astype(str), hide_index=True, width="stretch")
+
+if s.get("controles"):
+    # Qui a tourne, et pourquoi : la politique de routage est une table de
+    # regles (orchestrateur.POLITIQUE), jamais un modele.
+    with st.expander("Contrôles exécutés", expanded=False):
+        st.caption("Un contrôle à coût faible est toujours exécuté ; un contrôle à coût élevé "
+                   "ne l'est que si sa condition est remplie.")
+        st.dataframe(pd.DataFrame([{"Agent": c["agent"],
+                                    "Coût": {"faible": "faible", "eleve": "élevé"}.get(c["cout"], c["cout"]),
+                                    "Exécuté": "oui" if c["execute"] else "non",
+                                    "Motif": c["motif"]} for c in s["controles"]]),
+                     hide_index=True, width="stretch")

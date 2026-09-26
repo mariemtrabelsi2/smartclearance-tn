@@ -35,6 +35,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from agents.base import RapportAgent, NIVEAU_CONTRADICTION
+from agents.base import AGENTS, COUT_FAIBLE, COUT_ELEVE, NON_DEPLOYE, MOTIF_NON_DEPLOYE
 from agents import inspecteur_documentaire, analyste_prix, profileur, isolation
 from agents import registre as agent_registre
 from agents import redaction
@@ -54,6 +55,27 @@ def _executeur():
     if _EXECUTEUR is None:
         _EXECUTEUR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="etage2")
     return _EXECUTEUR
+
+
+# Politique de routage : une table de regles ecrites, pas un modele, et rien
+# ne l'apprend. Un controle a cout faible ne se saute jamais ; un agent a
+# cout eleve ne tourne que si sa propre condition est vraie ; un agent non
+# deploye ne tourne jamais.
+POLITIQUE = {
+    COUT_FAIBLE: "toujours execute",
+    COUT_ELEVE: "execute seulement si la condition est vraie",
+}
+
+
+def decider(cle, contexte):
+    """Consigne {agent, cout, execute, motif} pour un agent du registre."""
+    fiche = AGENTS[cle]
+    if fiche.etat == NON_DEPLOYE:
+        execute, motif = False, MOTIF_NON_DEPLOYE
+    else:
+        condition, motif = fiche.condition_execution(contexte)
+        execute = True if POLITIQUE[fiche.cout] == "toujours execute" else bool(condition)
+    return {"agent": fiche.nom, "cout": fiche.cout, "execute": execute, "motif": motif}
 
 
 # Ordre des agents pour le tri deterministe des alertes.
@@ -254,6 +276,8 @@ def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=Tru
     registre : True = registre par defaut, un chemin = ce registre (mesures),
     False/None = registre desactive (rien n'est ecrit)."""
     # Etage 1 : l'Agent 1 seul. Il lit la DDM et les PDF (l'essentiel du temps).
+    # Cout faible : toujours execute (la politique ne peut pas le sauter).
+    controles = [decider("documentaire", {"dossier": dossier})]
     r1 = inspecteur_documentaire.analyser(dossier)
     ddm, facture = r1.donnees["ddm"], r1.donnees["facture"]
 
@@ -275,6 +299,17 @@ def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=Tru
         source = None if registre is True else registre
         taches["registre"] = lambda: agent_registre.analyser(ddm, facture, source)
 
+    # Decisions consignees AVANT l'execution de l'etage 2. Les trois agents a
+    # cout faible tournent toujours ; seul l'appelant peut desactiver le
+    # registre (mesures sans ecriture), et c'est dit tel quel.
+    contexte = {"dossier": dossier, "ddm": ddm, "facture": facture, "agent1": r1.donnees}
+    for cle in ("prix", "profil", "registre", "imagerie"):
+        c = decider(cle, contexte)
+        if cle == "registre" and not registre:
+            c.update(execute=False, motif="désactivé à l'appel (analyse sans écriture au registre)")
+        controles.append(c)
+    # L'imagerie n'a aucune tache : meme decidee, elle ne produirait rien.
+
     if PARALLELE:
         futurs = {nom: _executeur().submit(f) for nom, f in taches.items()}
         resultats = {nom: futur.result() for nom, futur in futurs.items()}
@@ -287,6 +322,9 @@ def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=Tru
     # seulement si donnees/ajustements.json existe (absent dans la version livree).
     apprentissage.appliquer(rapports, ajustements)
     synthese = synthetiser(rapports)
+    # Apres synthetiser : le journal des controles n'entre ni dans le score ni
+    # dans la recommandation, ni dans l'empreinte de l'explication.
+    synthese["controles"] = controles
     synthese["numero_ddm"] = r1.donnees["ddm"].get("numero_ddm")
     synthese["normalisations"] = r1.donnees.get("normalisations", [])
     # Contexte pour juger le prix de CETTE marchandise ; aucun effet sur le score.
