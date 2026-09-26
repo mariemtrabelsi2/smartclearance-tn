@@ -1,1 +1,22 @@
-{}
+{
+  "DDM-2026-702326|96b0933ecc7a7f7e": {
+    "texte": "Le dossier presente un score de 0 ainsi qu'un nombre d'alertes et de contradictions nul (0 alerte, 0 contradiction). La valeur declaree s'eleve a 52 500 TND (16 800 USD). La mention relative au controle tarifaire indique : « Référence de prix : identiques (1 obs.) — fiabilité haute ». La recommandation generee par le systeme est « LIBERATION ».",
+    "modele": "gemini-3.8-flash",
+    "genere_le": "2026-09-26T01:47:40"
+  },
+  "DDM-2026-161818|711076f0308a3461": {
+    "texte": "Le champ reference_732690 n'a pas été lu. Le dossier présente un score de 65 avec une recommandation de CONTROLE_DOCUMENTAIRE et 3 alertes. Une incohérence apparaît entre la facture décrivant « Olive oil virgin 5L » et la DDM déclarant le code SH 732690 (« Autres ouvrages en fer ou acier »), chapitre 73 que l'importateur n'a par ailleurs jamais importé au vu de ses 20 déclarations antérieures. Enfin, une anomalie de poids est relevée avec 300.0 kg pour 1500 unités de « Olive oil virgin 5L », soit 0.200 kg par unité par rapport à la plage plausible de 3.5-7 kg, pour une valeur déclarée de 98 438 TND (31 500 USD) dont le prix n'a pas été contrôlé faute de référence.",
+    "modele": "gemini-3.8-flash",
+    "genere_le": "2026-09-26T01:47:57"
+  },
+  "DDM-2026-272975|0d13c33e98a5f890": {
+    "texte": "Le dossier présente un score de 80, une alerte et une contradiction, avec une recommandation de contrôle physique. Une incohérence est relevée sur les quantités déclarées, qui s'élèvent à 200 sur la facture, 320 sur le colisage, 200 sur la DDM et 200 sur le certificat. La valeur déclarée est de 6 531 250 TND (2 090 000 USD), pour laquelle la référence de prix indique des identiques (1 obs.) avec une fiabilité haute.",
+    "modele": "gemini-3.8-flash",
+    "genere_le": "2026-09-26T01:49:41"
+  },
+  "DDM-2026-767357|e02354788dd4f094": {
+    "texte": "Le champ reference_exacte_610910_CN n'a pas été lu. Le dossier présente un score de 96, deux alertes de niveau 1, deux contradictions, ainsi qu'une recommandation de CONTROLE_PHYSIQUE pour une valeur déclarée de 9 250 TND (2 960 USD) associée à une référence de prix de fiabilité moyenne (similaires, 1 obs.). Une première incohérence concerne l'origine, le certificat d'origine attestant TR tandis que le transport et la DDM déclarent CN. Une seconde anomalie porte sur le poids net, le colisage et le certificat indiquant 160.0 kg contre 113.6 kg déclarés sur la DDM, soit un écart de +46.4 kg (40.8 % pour une tolérance de 2 %).",
+    "modele": "gemini-3.8-flash",
+    "genere_le": "2026-09-26T01:51:26"
+  }
+}

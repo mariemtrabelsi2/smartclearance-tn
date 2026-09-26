@@ -31,7 +31,9 @@ except ImportError:          # sans python-dotenv, seule une variable d'environn
     pass
 
 # Modele : SMARTCLEARANCE_MODELE, sinon le defaut du fournisseur dont la cle est presente.
-MODELES_DEFAUT = {"gemini": "gemini-2.5-flash", "anthropic": "claude-opus-5"}
+# gemini-2.5-flash n'est plus ouvert aux nouveaux comptes (404, l'API renvoie
+# vers gemini-3.8-flash) : verifie sur la liste des modeles du compte le 2026-09-26.
+MODELES_DEFAUT = {"gemini": "gemini-3.8-flash", "anthropic": "claude-opus-5"}
 URL_GEMINI = "https://generativelanguage.googleapis.com/v1beta/models/{modele}:generateContent"
 URL_ANTHROPIC = "https://api.anthropic.com/v1/messages"
 DELAI_S = 5                  # une seule tentative, pas de nouvel essai
@@ -197,8 +199,13 @@ def _poster(url, corps, entetes):
     try:
         with urllib.request.urlopen(requete, timeout=DELAI_S) as rep:
             return json.loads(rep.read().decode("utf-8")), None
-    except urllib.error.HTTPError as e:     # quota, modele inconnu, cle refusee...
-        return None, f"appel impossible (HTTP {e.code})"
+    except urllib.error.HTTPError as e:     # quota, modele retire, surcharge, cle refusee...
+        # Le message de l'API dit la vraie cause ('modele retire', 'forte demande').
+        try:
+            detail = json.loads(e.read().decode("utf-8"))["error"]["message"][:120]
+        except Exception:
+            detail = ""
+        return None, f"appel impossible (HTTP {e.code}" + (f" : {detail}" if detail else "") + ")"
     except Exception as e:                  # reseau absent, delai depasse, reponse illisible
         return None, f"appel impossible ({type(e).__name__})"
 
@@ -214,10 +221,12 @@ def _appeler_gemini(message):
         "contents": [{"role": "user", "parts": [{"text": message}]}],
         "generationConfig": {"maxOutputTokens": 1024},
     }
-    if "2.5" in m:
-        # Gemini 2.5 reflechit par defaut : sans cela, 5 s ne suffisent pas
-        # pour 3 a 5 phrases.
+    # Ces modeles reflechissent par defaut : on reduit pour tenir dans 5 s.
+    # Chaque generation a son propre reglage ('minimal' est refuse par 3.8-flash).
+    if m.startswith("gemini-2.5"):
         corps["generationConfig"]["thinkingConfig"] = {"thinkingBudget": 0}
+    elif m.startswith("gemini-3"):
+        corps["generationConfig"]["thinkingConfig"] = {"thinkingLevel": "low"}
     # La cle voyage dans l'en-tete, jamais dans l'URL : une URL finit dans les
     # messages d'erreur et les journaux.
     reponse, echec = _poster(URL_GEMINI.format(modele=m), corps,
