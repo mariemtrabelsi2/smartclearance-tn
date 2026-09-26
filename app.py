@@ -159,6 +159,15 @@ for i, a in enumerate(s["alertes"]):
         f"<br>{a['message']}</div>", unsafe_allow_html=True)
     st.dataframe(tableau_preuve(a["preuve"]), hide_index=True, width="stretch")
     st.caption(f"Source : {a['source']}")
+    # Un systeme qui se modifie sans le dire serait refuse : l'ajustement appris
+    # est annonce en clair, avec ce qui le fonde.
+    if "ajustement_apprentissage" in a["preuve"]:
+        p = a["preuve"]
+        st.info(f"Gravité ajustée par les retours des inspecteurs : x{p['ajustement_apprentissage']} "
+                f"({p['gravite_avant_ajustement']} → {a['gravite']}), fondé sur {p['fonde_sur']}, "
+                f"calculé le {p['calcule_le']}.")
+    elif "retours_inspecteurs" in a["preuve"]:
+        st.caption(f"Retours des inspecteurs sur ce motif : {a['preuve']['retours_inspecteurs']}.")
 
     cle = f"{dossier}_{i}_{a['type']}"
     b1, b2, _ = st.columns([1, 1, 3])

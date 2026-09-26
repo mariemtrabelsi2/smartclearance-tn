@@ -27,7 +27,7 @@ EQUIVALENCES = {"sous_evaluation_via_reclassement": "sous_evaluation",
                 "sous_evaluation_justificatif_incoherent": "sous_evaluation"}
 
 
-def evaluer(dossiers_dir=RACINE / "dossiers", registre=None):
+def evaluer(dossiers_dir=RACINE / "dossiers", registre=None, ajustements=None):
     """registre : registre des references de facture. Par defaut, un registre
     temporaire VIDE a chaque mesure : sinon il garde les references d'une
     execution precedente (une autre graine, par exemple) et la mesure alerte
@@ -42,7 +42,8 @@ def evaluer(dossiers_dir=RACINE / "dossiers", registre=None):
     # Ordre des dossiers = ordre d'arrivee : c'est le SECOND dossier d'une
     # reference partagee qui doit alerter, comme le pose la verite terrain.
     for d in verite["dossiers"]:
-        s = analyser_dossier(Path(dossiers_dir) / d["dossier"], registre=registre)
+        s = analyser_dossier(Path(dossiers_dir) / d["dossier"], registre=registre,
+                             **({"ajustements": ajustements} if ajustements else {}))
         attendus = [a["type"] for a in d["anomalies"]]
         # Les alertes a gravite 0 sont informatives : elles ne comptent pas comme emises.
         # Rappel et precision portent sur le dossier : la verite terrain ne

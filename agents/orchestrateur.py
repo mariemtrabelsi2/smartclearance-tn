@@ -38,6 +38,7 @@ from agents.base import RapportAgent, NIVEAU_CONTRADICTION
 from agents import inspecteur_documentaire, analyste_prix, profileur, isolation
 from agents import registre as agent_registre
 from agents import redaction
+from agents import apprentissage
 from agents.devises import fmt_tnd, vers_tnd, MENTION_TAUX, SOURCE_TAUX
 
 PARALLELE = os.environ.get("SMARTCLEARANCE_PARALLELE", "0").strip() == "1"
@@ -242,7 +243,7 @@ def synthetiser(rapports: list) -> dict:
 
 
 def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=True,
-                     rediger=True) -> dict:
+                     rediger=True, ajustements=apprentissage.AJUSTEMENTS_DEFAUT) -> dict:
     """Chaine complete : Agents 1 et 2 lisent le dossier, l'Agent 3 le profil
     de l'operateur, le registre les doublons de facture, le coordinateur
     synthetise. Sources : None = source par defaut du stockage actif.
@@ -278,6 +279,9 @@ def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=Tru
 
     # Ordre FIXE des rapports, quel que soit l'ordre d'arrivee des branches.
     rapports = [r1] + [resultats[nom] for nom in ("prix", "profil", "registre") if nom in resultats]
+    # Boucle d'apprentissage : seulement la gravite des alertes de niveau 2, et
+    # seulement si donnees/ajustements.json existe (absent dans la version livree).
+    apprentissage.appliquer(rapports, ajustements)
     synthese = synthetiser(rapports)
     synthese["numero_ddm"] = r1.donnees["ddm"].get("numero_ddm")
     synthese["normalisations"] = r1.donnees.get("normalisations", [])
