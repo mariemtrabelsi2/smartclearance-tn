@@ -54,21 +54,38 @@ def appeler(url):
 
 
 def main():
+    """--reprendre : ne reinterroge que les mois ABSENTS du fichier, pour les seuls
+    couples qui ont eu des erreurs (quota de l'API publique). Rien n'est ecrase."""
     sys.stdout.reconfigure(encoding="utf-8")
+    reprise = "--reprendre" in sys.argv and SORTIE.exists() and RAPPORT.exists()
     couples = sorted({(l["code_sh"], l["pays_origine"]) for l in stockage.lire_bareme() or []})
     SORTIE.parent.mkdir(exist_ok=True)
-    rapport = {"periodes_interrogees": f"{PERIODES[0]}..{PERIODES[-1]}", "couples": {}}
-    with open(SORTIE, "w", newline="", encoding="utf-8") as f:
+    deja = set()
+    if reprise:
+        rapport = json.loads(RAPPORT.read_text(encoding="utf-8"))
+        with open(SORTIE, newline="", encoding="utf-8") as f:
+            deja = {(l["code_sh"], l["pays"], l["annee"] + l["mois"]) for l in csv.DictReader(f)}
+        couples = [(sh, p) for sh, p in couples if rapport["couples"].get(f"{sh}/{p}", {}).get("erreurs")]
+        print("Reprise pour :", [f"{sh}/{p}" for sh, p in couples])
+    else:
+        rapport = {"periodes_interrogees": f"{PERIODES[0]}..{PERIODES[-1]}", "couples": {}}
+    with open(SORTIE, "a" if reprise else "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        w.writerow(["code_sh", "pays", "annee", "mois", "valeur", "poids", "prix_kg",
-                    "poids_estime", "classification"])
+        if not reprise:
+            w.writerow(["code_sh", "pays", "annee", "mois", "valeur", "poids", "prix_kg",
+                        "poids_estime", "classification"])
         for sh, pays in couples:
-            info = {"appels": 0, "mois_avec_donnees": 0, "erreurs": {}}
+            info = rapport["couples"].get(f"{sh}/{pays}") if reprise else None
+            info = info or {"appels": 0, "mois_avec_donnees": 0, "erreurs": {}}
+            if reprise:
+                info["erreurs"] = {}           # on ne garde que les erreurs de ce passage
             rapport["couples"][f"{sh}/{pays}"] = info
             if pays not in CODES_PAYS:
                 info["erreurs"]["pays sans code Comtrade"] = 1
                 continue
             for periode in PERIODES:
+                if (sh, pays, periode) in deja:
+                    continue
                 donnees, erreur = appeler(URL.format(pays=CODES_PAYS[pays], sh=sh, periode=periode))
                 info["appels"] += 1
                 if erreur:
