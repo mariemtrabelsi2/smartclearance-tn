@@ -1,10 +1,10 @@
 {
   "nb_dossiers": 20,
-  "anomalies_posees": 22,
-  "anomalies_trouvees": 22,
+  "anomalies_posees": 23,
+  "anomalies_trouvees": 23,
   "rappel": 1.0,
-  "alertes_emises": 22,
-  "alertes_justes": 22,
+  "alertes_emises": 23,
+  "alertes_justes": 23,
   "precision": 1.0,
   "propres": {
     "nb": 6,
@@ -81,6 +81,12 @@
       "emises": 3,
       "justes": 3
     },
+    "reference_facture_dupliquee": {
+      "posees": 1,
+      "trouvees": 1,
+      "emises": 1,
+      "justes": 1
+    },
     "sous_evaluation": {
       "posees": 1,
       "trouvees": 1,
@@ -140,9 +146,11 @@
       "propre": false,
       "attendues": [
         "sous_evaluation",
-        "designation_vs_sh"
+        "designation_vs_sh",
+        "reference_facture_dupliquee"
       ],
       "obtenues": [
+        "reference_facture_dupliquee",
         "designation_vs_sh",
         "sous_evaluation"
       ],
@@ -151,8 +159,8 @@
       "alertes_profil": [
         "changement_secteur"
       ],
-      "score": 61,
-      "recommandation": "CONTROLE_DOCUMENTAIRE",
+      "score": 94,
+      "recommandation": "CONTROLE_PHYSIQUE",
       "analyse_partielle": true
     },
     {
