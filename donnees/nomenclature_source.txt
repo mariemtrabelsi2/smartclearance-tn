@@ -1,0 +1,15 @@
+Nomenclature du Systeme harmonise (SH) - fichiers nomenclature_sh6.csv et chapitres_sh.csv
+
+Source   : jeu de donnees ouvert "harmonized-system" (github.com/datasets/harmonized-system),
+           version 2022.0, construit a partir de la classification SH de UN Comtrade.
+Licence  : Open Data Commons PDDL 1.0 (domaine public).
+Telecharge le 2026-09-26.
+Contenu  : 5612 positions a 6 chiffres (SH 2022), 96 chapitres (01 a 97, le 77 est reserve).
+           Exclus : les codes statistiques UN Comtrade de section "TOTAL" (99, 9999, 999999
+           "marchandises non specifiees"), qui ne sont pas des positions du SH de l'OMD.
+           Le fichier source en comptait 5613 avec 999999.
+           libelle_court = partie du libelle officiel du chapitre avant le premier ';'.
+
+Limites  : descriptions en anglais ; 6 chiffres seulement. Le tarif douanier tunisien
+           complet (positions nationales a 11 chiffres, taux de droits) n'est pas publie
+           en fichier ouvert et necessiterait une convention avec la DGD.

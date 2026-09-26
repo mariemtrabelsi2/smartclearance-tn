@@ -12,6 +12,7 @@ from pathlib import Path
 from agents.base import RapportAgent, NIVEAU_CONTRADICTION, NIVEAU_ECART
 from agents.extraction import pdf_vers_texte, extraire_champs_detail, CHAMPS, cle_nom, cle_conteneur
 from agents.saisie import controles_saisie
+from agents import nomenclature
 from agents.devises import conversion, fmt_tnd, nombre_fr
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -315,6 +316,21 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
         )
 
     code_sh = str(ddm.get("code_sh") or "")
+
+    # Existence du code declare dans la nomenclature : un fait, pas une hypothese.
+    existe = nomenclature.existe(code_sh) if code_sh else None
+    if existe is None and code_sh:
+        r.non_lus.append("nomenclature SH indisponible : existence du code non verifiee")
+    elif existe is False:
+        r.ajouter(
+            type="code_sh_inexistant", niveau=NIVEAU_CONTRADICTION, gravite=75,
+            message=(f"Le code SH declare {code_sh} n'existe pas dans la {nomenclature.LIBELLE_SOURCE} "
+                     f"({nomenclature.nb_positions()} positions a 6 chiffres)."),
+            preuve={"code_declare": code_sh, "existe": False,
+                    "source": f"{nomenclature.LIBELLE_SOURCE}, {nomenclature.nb_positions()} positions"},
+            source="DDM : champ code_sh / donnees/nomenclature_sh6.csv",
+        )
+
     des_cer = cer["designation"] if cer is not None else None
     prod_cer = _produit(des_cer)
     if cer is not None and des_cer and prod_cer is None:
@@ -326,9 +342,13 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
         r.ajouter(
             type="designation_vs_sh", niveau=NIVEAU_ECART, gravite=75,
             message=(f"Le certificat d'origine decrit '{des_cer}' ({prod_cer['libelle']}, position "
-                     f"{' ou '.join(prod_cer['sh4'])}) mais la DDM declare le code SH {code_sh}."),
+                     f"{' ou '.join(prod_cer['sh4'])}) mais la DDM declare le code SH "
+                     f"{nomenclature.code_lisible(code_sh)}."),
             preuve={"designation_certificat": des_cer, "designation_facture": designation,
-                    "positions_admises": prod_cer["sh4"], "code_sh_declare": code_sh},
+                    "positions_admises": prod_cer["sh4"], "code_sh_declare": code_sh,
+                    "designation_officielle_declare": nomenclature.designation(code_sh),
+                    "code_sh_suggere": prod_cer["sh6"],
+                    "designation_officielle_suggere": nomenclature.designation(prod_cer["sh6"])},
             source="certificat : ligne 'Goods' / DDM : champ code_sh",
         )
         r.donnees["code_sh_suggere"] = prod_cer["sh6"]
@@ -339,9 +359,13 @@ def analyser(dossier: str, date_reference=None) -> RapportAgent:
                 type="designation_vs_sh", niveau=NIVEAU_ECART, gravite=75,
                 message=(f"La facture decrit '{designation}' ({prod['libelle']}, position "
                          f"{' ou '.join(prod['sh4'])}) mais la DDM declare le code SH {code_sh} "
-                         f"('{ddm.get('designation', '')}')."),
+                         f"('{ddm.get('designation', '')}' ; nomenclature : "
+                         f"{nomenclature.designation(code_sh) or 'designation inconnue'})."),
                 preuve={"designation_facture": designation, "positions_admises": prod["sh4"],
                         "code_sh_declare": code_sh, "designation_DDM": ddm.get("designation"),
+                        "designation_officielle_declare": nomenclature.designation(code_sh),
+                        "code_sh_suggere": prod["sh6"],
+                        "designation_officielle_suggere": nomenclature.designation(prod["sh6"]),
                         **({"designation_certificat": des_cer} if cer is not None else {})},
                 source="facture : ligne article, colonne DESCRIPTION / DDM : champ code_sh",
             )

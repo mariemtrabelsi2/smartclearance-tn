@@ -10,7 +10,7 @@ import statistics
 from datetime import date
 from pathlib import Path
 
-from agents import stockage
+from agents import nomenclature, stockage
 from agents.base import RapportAgent, NIVEAU_ECART
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -143,9 +143,13 @@ def analyser(ddm: dict, historique_csv=None, date_ddm=None,
     if sh and sh[:2] not in chapitres:
         r.ajouter(
             type="changement_secteur", niveau=NIVEAU_ECART, gravite=50,
-            message=(f"L'importateur n'a jamais importe de marchandises du chapitre {sh[:2]} ; "
-                     f"ses chapitres habituels sont {', '.join(chapitres)}."),
+            # Meme controle, message lisible : les libelles des chapitres, pas leurs numeros.
+            message=(f"L'importateur n'a jamais importe de marchandises de ce chapitre. Chapitres "
+                     f"habituels : {', '.join(nomenclature.chapitre_lisible(c) for c in chapitres)} ; "
+                     f"chapitre declare : {nomenclature.chapitre_lisible(sh[:2])}."),
             preuve={"chapitres_habituels": chapitres, "chapitre_declare": sh[:2],
+                    "libelles_habituels": [nomenclature.libelle_chapitre(c) for c in chapitres],
+                    "libelle_declare": nomenclature.libelle_chapitre(sh[:2]),
                     "nb_declarations": len(siennes)},
             source="historique des declarations de l'importateur",
         )

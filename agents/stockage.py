@@ -25,6 +25,8 @@ BAREME_CSV = RACINE / "bareme.csv"
 HISTORIQUE_CSV = RACINE / "donnees" / "historique.csv"
 REFERENCES_CSV = RACINE / "donnees" / "references_vues.csv"
 FEEDBACK_JSONL = RACINE / "feedback.jsonl"
+NOMENCLATURE_CSV = RACINE / "donnees" / "nomenclature_sh6.csv"
+CHAPITRES_CSV = RACINE / "donnees" / "chapitres_sh.csv"
 
 COLONNES_REFERENCES = ["reference_facture", "numero_ddm", "importateur", "date", "date_analyse"]
 
@@ -111,6 +113,22 @@ def _csv_enregistrer_reference(reference, ddm, importateur, date_doc, source=Non
     return True
 
 
+def _csv_lire_nomenclature(source=None):
+    chemin = Path(source or NOMENCLATURE_CSV)
+    if not chemin.exists():
+        return None
+    with open(chemin, newline="", encoding="utf-8") as f:
+        return {l["code_sh"]: l for l in csv.DictReader(f)}
+
+
+def _csv_lire_chapitres(source=None):
+    chemin = Path(source or CHAPITRES_CSV)
+    if not chemin.exists():
+        return None
+    with open(chemin, newline="", encoding="utf-8") as f:
+        return {l["chapitre"]: l for l in csv.DictReader(f)}
+
+
 def _jsonl_ajouter(entree, chemin):
     with open(chemin, "a", encoding="utf-8") as f:
         f.write(json.dumps(entree, ensure_ascii=False) + "\n")
@@ -159,6 +177,11 @@ CREATE TABLE IF NOT EXISTS references_vues (
 CREATE INDEX IF NOT EXISTS idx_references ON references_vues(reference);
 CREATE TABLE IF NOT EXISTS feedback (
     id INTEGER PRIMARY KEY AUTOINCREMENT, contenu TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS nomenclature_sh6 (
+    code_sh TEXT PRIMARY KEY, chapitre TEXT, section TEXT, designation TEXT);
+CREATE TABLE IF NOT EXISTS chapitres_sh (
+    chapitre TEXT PRIMARY KEY, section TEXT, libelle_section TEXT,
+    libelle_court TEXT, designation TEXT);
 """
 
 
@@ -251,6 +274,18 @@ def _sql_lire_feedback(source=None):
         return [json.loads(l["contenu"]) for l in con.execute("SELECT contenu FROM feedback ORDER BY id")]
 
 
+def _sql_lire_nomenclature(source=None):
+    with closing(_connexion(source or BASE_SQLITE)) as con:
+        lignes = {l["code_sh"]: dict(l) for l in con.execute("SELECT * FROM nomenclature_sh6")}
+    return lignes or None
+
+
+def _sql_lire_chapitres(source=None):
+    with closing(_connexion(source or BASE_SQLITE)) as con:
+        lignes = {l["chapitre"]: dict(l) for l in con.execute("SELECT * FROM chapitres_sh")}
+    return lignes or None
+
+
 def _sql_registre_temporaire():
     return Path(tempfile.mkdtemp(prefix="registre_mesure_")) / "registre.db"
 
@@ -264,14 +299,16 @@ _IMPL = {
             "enregistrer_reference": _csv_enregistrer_reference,
             "enregistrer_feedback": _csv_enregistrer_feedback,
             "lire_feedback": _csv_lire_feedback,
-            "registre_temporaire": _csv_registre_temporaire},
+            "registre_temporaire": _csv_registre_temporaire,
+            "lire_nomenclature": _csv_lire_nomenclature, "lire_chapitres": _csv_lire_chapitres},
     "sqlite": {"lire_bareme": _sql_lire_bareme, "chercher_bareme": _sql_chercher_bareme,
                "lire_historique": _sql_lire_historique,
                "chercher_reference": _sql_chercher_reference,
                "enregistrer_reference": _sql_enregistrer_reference,
                "enregistrer_feedback": _sql_enregistrer_feedback,
                "lire_feedback": _sql_lire_feedback,
-               "registre_temporaire": _sql_registre_temporaire},
+               "registre_temporaire": _sql_registre_temporaire,
+               "lire_nomenclature": _sql_lire_nomenclature, "lire_chapitres": _sql_lire_chapitres},
 }
 
 
@@ -312,6 +349,16 @@ def enregistrer_feedback(entree, source=None):
 
 def lire_feedback(source=None):
     return _impl("lire_feedback")(source)
+
+
+def lire_nomenclature(source=None):
+    """{code_sh: {code_sh, chapitre, section, designation}} (SH 2022, 6 chiffres) ou None."""
+    return _impl("lire_nomenclature")(source)
+
+
+def lire_chapitres(source=None):
+    """{chapitre: {chapitre, section, libelle_section, libelle_court, designation}} ou None."""
+    return _impl("lire_chapitres")(source)
 
 
 def registre_temporaire():

@@ -35,6 +35,8 @@ def main():
         with open(stockage.REFERENCES_CSV, newline="", encoding="utf-8") as f:
             refs = list(csv.DictReader(f))
     feedback = stockage._csv_lire_feedback()
+    nomenclature = stockage._csv_lire_nomenclature() or {}
+    chapitres = stockage._csv_lire_chapitres() or {}
 
     con = stockage._connexion(tmp, creer=True)
     with con:
@@ -48,18 +50,26 @@ def main():
                         [(stockage.cle_reference(l["reference_facture"]), l["reference_facture"],
                           l["numero_ddm"], stockage.cle_reference(l["numero_ddm"]),
                           l["importateur"], l["date"], l["date_analyse"]) for l in refs])
+        con.executemany("INSERT INTO nomenclature_sh6 VALUES (?, ?, ?, ?)",
+                        [(l["code_sh"], l["chapitre"], l["section"], l["designation"])
+                         for l in nomenclature.values()])
+        con.executemany("INSERT INTO chapitres_sh VALUES (?, ?, ?, ?, ?)",
+                        [(l["chapitre"], l["section"], l["libelle_section"], l["libelle_court"],
+                          l["designation"]) for l in chapitres.values()])
         import json
         con.executemany("INSERT INTO feedback (contenu) VALUES (?)",
                         [(json.dumps(e, ensure_ascii=False),) for e in feedback])
     comptes = {t: con.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
-               for t in ("bareme", "historique", "references_vues", "feedback")}
+               for t in ("bareme", "historique", "references_vues", "feedback",
+                         "nomenclature_sh6", "chapitres_sh")}
     con.close()
     os.replace(tmp, cible)
 
     print(f"{cible} construite :")
     for t, n in comptes.items():
         print(f"  {t:16} {n} ligne(s)")
-    attendus = {"bareme": len(bareme), "historique": len(histo)}
+    attendus = {"bareme": len(bareme), "historique": len(histo),
+                "nomenclature_sh6": len(nomenclature), "chapitres_sh": len(chapitres)}
     for t, n in attendus.items():
         if comptes[t] != n:
             print(f"  ECART : {t} a {comptes[t]} lignes, {n} attendues")

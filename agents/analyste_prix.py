@@ -8,7 +8,7 @@ import re
 import statistics
 from pathlib import Path
 
-from agents import stockage
+from agents import nomenclature, stockage
 from agents.base import RapportAgent, NIVEAU_ECART
 from agents.devises import conversion, fmt_tnd, fmt_tnd_kg, vers_tnd, MENTION_TAUX
 
@@ -225,7 +225,8 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
                         "ecart_pct": round(ecart, 1), "seuil_pct": ref["seuil"],
                         "fiabilite_reference": ref["fiabilite"], "type_reference": ref["type"],
                         "origines_agregees": ref["origines"],
-                        "nb_observations": len(ref["prix_ref"])},
+                        "nb_observations": len(ref["prix_ref"]),
+                        "code_sh": sh, "designation_officielle": nomenclature.designation(sh)},
                 source=f"DDM : valeur_cif_usd / poids_net_kg ; bareme {nom_bareme} "
                        f"lignes {sh}/{','.join(ref['origines'])}",
             )
@@ -256,6 +257,8 @@ def analyser(donnees_ddm: dict, bareme_csv=None,
                              f"presente un ecart de {ecart2:.0f} %. Le classement errone peut "
                              f"masquer une sous-evaluation. {MENTION_OMC}"),
                     preuve={"code_declare": sh, "code_suggere": suggere,
+                            "designation_officielle_declare": nomenclature.designation(sh),
+                            "designation_officielle_suggere": nomenclature.designation(suggere),
                             "prix_declare": round(prix_kg, 2), "reference_code_suggere": med2,
                             "ecart_pct": round(ecart2),
                             "seuil_pct": ref2["seuil"], "fiabilite_reference": ref2["fiabilite"],

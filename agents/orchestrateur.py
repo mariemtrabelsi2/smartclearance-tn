@@ -39,6 +39,7 @@ from agents import inspecteur_documentaire, analyste_prix, profileur, isolation
 from agents import registre as agent_registre
 from agents import redaction
 from agents import apprentissage
+from agents import nomenclature
 from agents.devises import fmt_tnd, vers_tnd, MENTION_TAUX, SOURCE_TAUX
 
 PARALLELE = os.environ.get("SMARTCLEARANCE_PARALLELE", "0").strip() == "1"
@@ -83,6 +84,7 @@ PIECES = {
     "sous_evaluation_via_reclassement": ["fiche technique du produit", "contrat commercial",
                                          "preuve de paiement (avis SWIFT, releve bancaire)"],
     "saisie_douteuse": ["piece originale (verification de la saisie)"],
+    "code_sh_inexistant": ["declaration rectifiee (code SH valide)", "fiche technique du produit"],
     "reference_facture_dupliquee": ["facture commerciale originale",
                                     "declaration precedente couverte par la meme facture"],
     "ecart_origine_certificat": ["certificat d'origine original", "preuve d'origine du fabricant"],
@@ -190,7 +192,8 @@ def _convergence(alertes):
         p = a.preuve
         return (f"Convergence : deux agents indépendants pointent la même opération — "
                 f"l'inspecteur documentaire relève que la marchandise décrite relève du "
-                f"code {p['code_suggere']} et non du {p['code_declare']} déclaré, et "
+                f"code {nomenclature.code_lisible(p['code_suggere'])} et non du "
+                f"{nomenclature.code_lisible(p['code_declare'])} déclaré, et "
                 f"l'analyste prix constate que, sous ce code, le prix déclaré est à "
                 f"{p['ecart_pct']:+d} % de la référence. ")
     return ""
@@ -285,6 +288,9 @@ def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=Tru
     synthese = synthetiser(rapports)
     synthese["numero_ddm"] = r1.donnees["ddm"].get("numero_ddm")
     synthese["normalisations"] = r1.donnees.get("normalisations", [])
+    code = r1.donnees["ddm"].get("code_sh")
+    synthese["code_sh"] = {"code_sh": code, "designation_officielle": nomenclature.designation(code),
+                           "designation_DDM": r1.donnees["ddm"].get("designation")}
     v = r1.donnees["ddm"].get("valeur_cif_usd")
     synthese["valeur_declaree"] = {"usd": v, "tnd": round(vers_tnd(v)) if v else None,
                                    "libelle": f"Valeur declaree : {fmt_tnd(v)}",
