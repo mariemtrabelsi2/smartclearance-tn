@@ -58,9 +58,12 @@ def _executeur():
 
 
 # Politique de routage : une table de regles ecrites, pas un modele, et rien
-# ne l'apprend. Un controle a cout faible ne se saute jamais ; un agent a
-# cout eleve ne tourne que si sa propre condition est vraie ; un agent non
-# deploye ne tourne jamais.
+# ne l'apprend. Dans l'ordre :
+#   1. un agent non deploye ne tourne jamais ;
+#   2. un agent dont la precondition manque (donnee absente) ne tourne pas :
+#      il n'a pas de quoi travailler, quel que soit son cout ;
+#   3. un controle a cout faible tourne toujours, aucune regle de cout ne le saute ;
+#   4. un agent a cout eleve ne tourne que si sa propre condition est vraie.
 POLITIQUE = {
     COUT_FAIBLE: "toujours execute",
     COUT_ELEVE: "execute seulement si la condition est vraie",
@@ -72,11 +75,16 @@ def decider(cle, contexte):
     fiche = AGENTS[cle]
     if fiche.etat == NON_DEPLOYE:
         execute, motif = False, MOTIF_NON_DEPLOYE
+    elif not fiche.precondition(contexte)[0]:
+        execute, motif = False, fiche.precondition(contexte)[1]
     else:
         condition, motif = fiche.condition_execution(contexte)
         execute = True if POLITIQUE[fiche.cout] == "toujours execute" else bool(condition)
     return {"agent": fiche.nom, "cout": fiche.cout, "execute": execute, "motif": motif}
 
+
+# Nom de rapport de chaque agent (celui que l'agent ecrit lui-meme).
+RAPPORT_DE = {"prix": "Analyste prix", "profil": "Profileur", "registre": "Registre des references"}
 
 # Ordre des agents pour le tri deterministe des alertes.
 RANG_AGENT = {"Inspecteur documentaire": 0, "Analyste prix": 1, "Profileur": 2,
@@ -299,14 +307,21 @@ def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=Tru
         source = None if registre is True else registre
         taches["registre"] = lambda: agent_registre.analyser(ddm, facture, source)
 
-    # Decisions consignees AVANT l'execution de l'etage 2. Les trois agents a
-    # cout faible tournent toujours ; seul l'appelant peut desactiver le
-    # registre (mesures sans ecriture), et c'est dit tel quel.
+    # Decisions consignees AVANT l'execution de l'etage 2. Seuls une donnee
+    # absente (precondition) ou l'appelant (registre desactive pour une mesure
+    # sans ecriture) empechent un agent a cout faible de tourner, et c'est dit.
     contexte = {"dossier": dossier, "ddm": ddm, "facture": facture, "agent1": r1.donnees}
+    sautes = {}
     for cle in ("prix", "profil", "registre", "imagerie"):
         c = decider(cle, contexte)
         if cle == "registre" and not registre:
             c.update(execute=False, motif="désactivé à l'appel (analyse sans écriture au registre)")
+        elif cle in taches and not c["execute"]:
+            # Precondition manquante : l'agent ne tourne pas, mais le controle
+            # non fait reste visible dans les champs non lus, comme avant.
+            del taches[cle]
+            sautes[cle] = RapportAgent(agent=RAPPORT_DE[cle], statut="NON EXECUTE",
+                                       non_lus=[f"{c['agent']} non exécuté : {c['motif']}"])
         controles.append(c)
     # L'imagerie n'a aucune tache : meme decidee, elle ne produirait rien.
 
@@ -317,6 +332,7 @@ def analyser_dossier(dossier, bareme_csv=None, historique_csv=None, registre=Tru
         resultats = {nom: f() for nom, f in taches.items()}
 
     # Ordre FIXE des rapports, quel que soit l'ordre d'arrivee des branches.
+    resultats.update(sautes)
     rapports = [r1] + [resultats[nom] for nom in ("prix", "profil", "registre") if nom in resultats]
     # Boucle d'apprentissage : seulement la gravite des alertes de niveau 2, et
     # seulement si donnees/ajustements.json existe (absent dans la version livree).
